@@ -1,0 +1,46 @@
+
+\begin{ganttchart}[
+    vgrid,
+    hgrid,
+    x unit=0.8cm,
+    y unit title=0.6cm,
+    y unit chart=0.5cm,
+    title label font=\scriptsize,
+    bar label font=\scriptsize,
+    milestone label font=\scriptsize\bfseries,
+    group label font=\scriptsize\bfseries
+]{1}{12}
+    \gantttitle{Cronograma de Migração Visual Age}{12} \\
+    \gantttitlelist{1,...,12}{1} \\
+
+    \ganttgroup{Fase 0: Research}{1}{2} \\
+    \ganttbar{Análise Técnica}{1}{1} \\
+    \ganttbar{Prototipação}{2}{2} \\
+    \ganttmilestone{M1: Viabilidade}{2} \\
+
+    \ganttgroup{Fase 1: Foundation}{3}{4} \\
+    \ganttbar{Setup Ambiente}{3}{3} \\
+    \ganttbar{Estrutura Base}{4}{4} \\
+    \ganttmilestone{M2: Fundação}{4} \\
+
+    \ganttgroup{Fase 2: Core Development}{5}{8} \\
+    \ganttbar{Backend API}{5}{6} \\
+    \ganttbar{Frontend React}{6}{7} \\
+    \ganttbar{Integrações}{7}{8} \\
+    \ganttmilestone{M3: MVP}{8} \\
+
+    \ganttgroup{Fase 3: Testing}{9}{10} \\
+    \ganttbar{Testes E2E}{9}{9} \\
+    \ganttbar{Performance}{10}{10} \\
+    \ganttmilestone{M4: Qualidade}{10} \\
+
+    \ganttgroup{Fase 4: Deploy}{11}{12} \\
+    \ganttbar{Homologação}{11}{11} \\
+    \ganttbar{Go-Live}{12}{12} \\
+    \ganttmilestone{M5: Produção}{12}
+
+    \ganttlink{elem1}{elem3}
+    \ganttlink{elem3}{elem5}
+    \ganttlink{elem5}{elem8}
+    \ganttlink{elem8}{elem11}
+\end{ganttchart}

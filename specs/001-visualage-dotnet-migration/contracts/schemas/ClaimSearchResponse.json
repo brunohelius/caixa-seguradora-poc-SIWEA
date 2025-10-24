@@ -1,0 +1,246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/ClaimSearchResponse.json",
+  "title": "Claim Search Response",
+  "description": "Resposta de pesquisa de sinistros contendo informações completas do sinistro encontrado",
+  "type": "object",
+  "required": ["sucesso"],
+  "properties": {
+    "sucesso": {
+      "type": "boolean",
+      "description": "Indica se a operação foi bem-sucedida",
+      "examples": [true]
+    },
+    "sinistro": {
+      "$ref": "#/definitions/ClaimDetail"
+    }
+  },
+  "definitions": {
+    "ClaimDetail": {
+      "type": "object",
+      "required": [
+        "tipseg",
+        "orgsin",
+        "rmosin",
+        "numsin",
+        "fonte",
+        "protsini",
+        "dac",
+        "numeroProtocolo",
+        "numeroSinistro",
+        "numeroApolice",
+        "sdopag",
+        "totpag",
+        "valorPendente",
+        "ocorhist",
+        "tipreg",
+        "tpsegu",
+        "ehConsorcio"
+      ],
+      "properties": {
+        "tipseg": {
+          "type": "integer",
+          "description": "Tipo de seguro",
+          "examples": [1]
+        },
+        "orgsin": {
+          "type": "integer",
+          "description": "Órgão do sinistro",
+          "examples": [10]
+        },
+        "rmosin": {
+          "type": "integer",
+          "description": "Ramo do sinistro",
+          "examples": [20]
+        },
+        "numsin": {
+          "type": "integer",
+          "description": "Número do sinistro",
+          "examples": [789012]
+        },
+        "fonte": {
+          "type": "integer",
+          "description": "Fonte do protocolo",
+          "examples": [1]
+        },
+        "protsini": {
+          "type": "integer",
+          "description": "Número do protocolo",
+          "examples": [123456]
+        },
+        "dac": {
+          "type": "integer",
+          "description": "Dígito de controle",
+          "examples": [7]
+        },
+        "numeroProtocolo": {
+          "type": "string",
+          "description": "Protocolo formatado (fonte/protsini-dac)",
+          "pattern": "^\\d{3}/\\d{7}-\\d$",
+          "examples": ["001/0123456-7"]
+        },
+        "numeroSinistro": {
+          "type": "string",
+          "description": "Sinistro formatado (orgsin/rmosin/numsin)",
+          "pattern": "^\\d+/\\d+/\\d+$",
+          "examples": ["10/20/789012"]
+        },
+        "orgapo": {
+          "type": "integer",
+          "description": "Órgão da apólice",
+          "examples": [10]
+        },
+        "rmoapo": {
+          "type": "integer",
+          "description": "Ramo da apólice",
+          "examples": [20]
+        },
+        "numapol": {
+          "type": "integer",
+          "description": "Número da apólice",
+          "examples": [555666]
+        },
+        "numeroApolice": {
+          "type": "string",
+          "description": "Apólice formatada (orgapo/rmoapo/numapol)",
+          "pattern": "^\\d+/\\d+/\\d+$",
+          "examples": ["10/20/555666"]
+        },
+        "nomeRamo": {
+          "type": "string",
+          "description": "Nome do ramo de seguros",
+          "examples": ["Vida Individual"]
+        },
+        "nomeSeguradora": {
+          "type": "string",
+          "description": "Nome do segurado",
+          "examples": ["João da Silva Santos"]
+        },
+        "codprodu": {
+          "type": "integer",
+          "description": "Código do produto",
+          "examples": [1001]
+        },
+        "nomeProduto": {
+          "type": "string",
+          "description": "Nome do produto",
+          "examples": ["Vida Total Premium"]
+        },
+        "sdopag": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Saldo esperado (reserva)",
+          "examples": [50000.00]
+        },
+        "totpag": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Total pago até o momento",
+          "examples": [15000.00]
+        },
+        "valorPendente": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor pendente (sdopag - totpag)",
+          "examples": [35000.00]
+        },
+        "codlider": {
+          "type": ["integer", "null"],
+          "description": "Código líder (resseguro)",
+          "examples": [null]
+        },
+        "sinlid": {
+          "type": ["integer", "null"],
+          "description": "Sinistro líder",
+          "examples": [null]
+        },
+        "ocorhist": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Contador de ocorrências de histórico",
+          "examples": [3]
+        },
+        "tipreg": {
+          "type": "string",
+          "pattern": "^[12]$",
+          "description": "Tipo de registro/apólice ('1' ou '2')",
+          "examples": ["1"]
+        },
+        "tpsegu": {
+          "type": "integer",
+          "description": "Tipo de seguro (0 = favorecido opcional, != 0 = obrigatório)",
+          "examples": [1]
+        },
+        "ehConsorcio": {
+          "type": "boolean",
+          "description": "Indica se é produto consórcio (6814, 7701, 7709)",
+          "examples": [false]
+        },
+        "criadoPor": {
+          "type": "string",
+          "description": "Usuário que criou o registro",
+          "examples": ["operador.sistema"]
+        },
+        "criadoEm": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data/hora de criação (ISO 8601)",
+          "examples": ["2025-01-15T10:30:00Z"]
+        },
+        "atualizadoPor": {
+          "type": "string",
+          "description": "Usuário que atualizou o registro",
+          "examples": ["operador.sistema"]
+        },
+        "atualizadoEm": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data/hora da última atualização (ISO 8601)",
+          "examples": ["2025-10-20T14:22:00Z"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "sucesso": true,
+      "sinistro": {
+        "tipseg": 1,
+        "orgsin": 10,
+        "rmosin": 20,
+        "numsin": 789012,
+        "fonte": 1,
+        "protsini": 123456,
+        "dac": 7,
+        "numeroProtocolo": "001/0123456-7",
+        "numeroSinistro": "10/20/789012",
+        "orgapo": 10,
+        "rmoapo": 20,
+        "numapol": 555666,
+        "numeroApolice": "10/20/555666",
+        "nomeRamo": "Vida Individual",
+        "nomeSeguradora": "João da Silva Santos",
+        "codprodu": 1001,
+        "nomeProduto": "Vida Total Premium",
+        "sdopag": 50000.00,
+        "totpag": 15000.00,
+        "valorPendente": 35000.00,
+        "codlider": null,
+        "sinlid": null,
+        "ocorhist": 3,
+        "tipreg": "1",
+        "tpsegu": 1,
+        "ehConsorcio": false,
+        "criadoPor": "operador.sistema",
+        "criadoEm": "2025-01-15T10:30:00Z",
+        "atualizadoPor": "operador.sistema",
+        "atualizadoEm": "2025-10-20T14:22:00Z"
+      }
+    }
+  ]
+}

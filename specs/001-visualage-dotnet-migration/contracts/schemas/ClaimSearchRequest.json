@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/ClaimSearchRequest.json",
+  "title": "Claim Search Request",
+  "description": "Requisição de pesquisa de sinistros com três critérios mutuamente exclusivos: protocolo, número de sinistro ou código líder",
+  "type": "object",
+  "properties": {
+    "fonte": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Fonte do protocolo",
+      "examples": [1]
+    },
+    "protsini": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Número do protocolo",
+      "examples": [123456]
+    },
+    "dac": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9,
+      "description": "Dígito de controle (check digit)",
+      "examples": [7]
+    },
+    "orgsin": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Órgão do sinistro",
+      "examples": [10]
+    },
+    "rmosin": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Ramo do sinistro",
+      "examples": [20]
+    },
+    "numsin": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Número do sinistro",
+      "examples": [789012]
+    },
+    "codlider": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Código líder (resseguro)",
+      "examples": [5]
+    },
+    "sinlid": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sinistro líder",
+      "examples": [999888]
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["fonte", "protsini", "dac"],
+      "description": "Pesquisa por número de protocolo"
+    },
+    {
+      "required": ["orgsin", "rmosin", "numsin"],
+      "description": "Pesquisa por número de sinistro"
+    },
+    {
+      "required": ["codlider", "sinlid"],
+      "description": "Pesquisa por código líder"
+    }
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "fonte": 1,
+      "protsini": 123456,
+      "dac": 7
+    },
+    {
+      "orgsin": 10,
+      "rmosin": 20,
+      "numsin": 789012
+    },
+    {
+      "codlider": 5,
+      "sinlid": 999888
+    }
+  ]
+}

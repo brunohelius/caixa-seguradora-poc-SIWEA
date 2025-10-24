@@ -1,0 +1,19 @@
+% Legacy System Analysis Section
+\section{Arquitetura Atual}
+{{ legacy_architecture_description }}
+
+\section{Tecnologias Utilizadas}
+\begin{itemize}
+{% for tech in legacy_technologies %}
+    \item {{ tech }}
+{% endfor %}
+\end{itemize}
+
+\section{Regras de Negócio Identificadas}
+{% for rule in business_rules[:10] %}
+\subsection{{{ rule.entity }}}
+{{ rule.rule }}
+{% endfor %}
+
+\section{Estrutura de Dados}
+{{ legacy_database_description }}

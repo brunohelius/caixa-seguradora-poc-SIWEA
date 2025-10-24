@@ -1,0 +1,83 @@
+% Colors Style Package for Visual Age Migration Document
+% Defines Caixa Seguradora brand colors
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{colors}[2025/10/23 Caixa Seguradora brand colors]
+
+% Required packages
+\RequirePackage{xcolor}
+
+% Primary brand colors
+\definecolor{caixablue}{HTML}{0066CC}      % Primary blue
+\definecolor{caixagreen}{HTML}{00A859}     % Success green
+\definecolor{caixayellow}{HTML}{FFCC00}    % Warning yellow
+\definecolor{caixared}{HTML}{E80C4D}       % Error red
+
+% Secondary colors
+\definecolor{caixadarkblue}{HTML}{004499}  % Darker blue for emphasis
+\definecolor{caixalightblue}{HTML}{3399FF} % Light blue for backgrounds
+\definecolor{caixagray}{HTML}{666666}      % Gray for secondary text
+\definecolor{caixalightgray}{HTML}{E6E6E6} % Light gray for backgrounds
+
+% Semantic colors
+\definecolor{success}{HTML}{00A859}        % Success/positive
+\definecolor{warning}{HTML}{FFCC00}        % Warning/caution
+\definecolor{error}{HTML}{E80C4D}          % Error/critical
+\definecolor{info}{HTML}{0066CC}           % Information/neutral
+
+% Table colors
+\definecolor{tableheader}{HTML}{0066CC}    % Table header background
+\definecolor{tableodd}{HTML}{F0F8FF}       % Odd row background
+\definecolor{tableeven}{HTML}{FFFFFF}      % Even row background
+
+% Code colors
+\definecolor{codebg}{HTML}{F5F5F5}         % Code background
+\definecolor{codeframe}{HTML}{CCCCCC}      % Code frame
+\definecolor{codekeyword}{HTML}{0066CC}    % Keywords
+\definecolor{codecomment}{HTML}{666666}    % Comments
+\definecolor{codestring}{HTML}{00A859}     % Strings
+
+% Risk level colors
+\definecolor{riskhigh}{HTML}{E80C4D}       % High risk
+\definecolor{riskmedium}{HTML}{FFCC00}     % Medium risk
+\definecolor{risklow}{HTML}{00A859}        % Low risk
+
+% Status colors
+\definecolor{statuscomplete}{HTML}{00A859} % Completed
+\definecolor{statusprogress}{HTML}{0066CC} % In progress
+\definecolor{statuspending}{HTML}{FFCC00}  % Pending
+\definecolor{statusblocked}{HTML}{E80C4D}  % Blocked
+
+% Helper commands for colored text
+\newcommand{\caixatext}[1]{\textcolor{caixablue}{#1}}
+\newcommand{\successtext}[1]{\textcolor{success}{#1}}
+\newcommand{\warningtext}[1]{\textcolor{warning}{#1}}
+\newcommand{\errortext}[1]{\textcolor{error}{#1}}
+
+% Helper commands for colored boxes
+\newcommand{\infobox}[1]{%
+    \colorbox{caixalightblue!10}{\parbox{\textwidth}{#1}}%
+}
+
+\newcommand{\successbox}[1]{%
+    \colorbox{success!10}{\parbox{\textwidth}{#1}}%
+}
+
+\newcommand{\warningbox}[1]{%
+    \colorbox{warning!10}{\parbox{\textwidth}{#1}}%
+}
+
+\newcommand{\errorbox}[1]{%
+    \colorbox{error!10}{\parbox{\textwidth}{#1}}%
+}
+
+% Table styling commands
+\newcommand{\tableheaderrow}{%
+    \rowcolor{tableheader}\color{white}%
+}
+
+\newcommand{\tablealternaterows}{%
+    \rowcolors{2}{tableeven}{tableodd}%
+}
+
+\endinput

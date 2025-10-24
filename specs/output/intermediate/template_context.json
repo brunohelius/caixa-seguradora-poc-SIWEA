@@ -1,0 +1,791 @@
+{
+  "document_title": "Visual Age Migration Analysis & Planning",
+  "document_subtitle": "IBM VisualAge EZEE to .NET 9 + React 19",
+  "document_author": "Caixa Seguradora Architecture Team",
+  "document_version": "1.0",
+  "document_date": "2025-10-23",
+  "generation_date": "2025-10-23T23:25:02.153055",
+  "confidentiality": "Internal Use Only",
+  "logo_path": "/Users/brunosouza/Development/Caixa Seguradora/POC Visual Age/specs/001-visual-age-migration-pdf/contracts/assets/caixa-logo.png",
+  "user_stories": [
+    {
+      "id": "US1",
+      "title": "Search and Retrieve Claim",
+      "priority": "P1",
+      "description": "Insurance operators need to search for existing claims using multiple criteria (protocol number, claim number, or leader code) to view claim details and initiate payment authorization processes.",
+      "rationale": "This is the entry point for all claim operations - without the ability to search and retrieve claims, no other functionality can be accessed. This represents the core MVP.",
+      "test": "Can be fully tested by entering a valid protocol number and verifying that the system displays the correct claim information (claim number, policy number, insured name, reserve amount, payments made, pending value).",
+      "scenarios": [
+        {
+          "given": "an operator is on the claim search screen",
+          "when": "they enter a valid protocol number (fonte, protsini, dac)",
+          "then": "the system displays the claim details including claim number, policy, insured name, reserve amount, total payments, and pending value"
+        },
+        {
+          "given": "an operator is on the claim search screen",
+          "when": "they enter a valid claim number (orgsin, rmosin, numsin)",
+          "then": "the system displays the same claim details"
+        },
+        {
+          "given": "an operator is on the claim search screen",
+          "when": "they enter a valid leader code and leader claim number",
+          "then": "the system displays the claim details"
+        },
+        {
+          "given": "an operator enters an invalid or non-existent document number",
+          "when": "they submit the search",
+          "then": "the system displays an error message \"DOCUMENTO XXXXXXXXXXXXXXX NAO CADASTRADO\" and allows them to try again"
+        },
+        {
+          "given": "an operator is on the claim search screen",
+          "when": "they do not enter any search criteria",
+          "then": "the system displays a validation error indicating at least one search field is required"
+        }
+      ]
+    },
+    {
+      "id": "US2",
+      "title": "Authorize Claim Payment",
+      "priority": "P2",
+      "description": "After retrieving a claim, operators need to enter payment authorization details including payment type, principal amount, correction value, and beneficiary information to authorize indemnity payments.",
+      "rationale": "This is the primary business operation - authorizing payments. Depends on Story 1 (search) being completed first.",
+      "test": "Can be tested by retrieving a valid claim, entering valid payment details (type 1-5, principal value, correction value, beneficiary name), and verifying the system accepts the authorization and updates claim history.",
+      "scenarios": [
+        {
+          "given": "a claim is displayed with pending value greater than zero",
+          "when": "the operator enters valid payment type (1-5), principal amount, and correction value",
+          "then": "the system accepts the payment authorization"
+        },
+        {
+          "given": "a claim has insurance type (tpsegu) = 0",
+          "when": "the operator authorizes payment",
+          "then": "the beneficiary field is optional"
+        },
+        {
+          "given": "a claim has insurance type (tpsegu) != 0",
+          "when": "the operator authorizes payment without entering beneficiary",
+          "then": "the system displays a validation error requiring beneficiary name"
+        },
+        {
+          "given": "an operator enters payment details",
+          "when": "they submit the authorization",
+          "then": "the system creates a history record (THISTSIN) with operation code 1098, current date/time, and entered values"
+        },
+        {
+          "given": "an operator enters payment details",
+          "when": "the authorization is confirmed",
+          "then": "the system increments the claim occurrence counter (ocorhist) by 1 in the master record (TMESTSIN)"
+        },
+        {
+          "given": "an operator enters a non-numeric or invalid payment type",
+          "when": "they try to submit",
+          "then": "the system displays a validation error indicating payment type must be 1, 2, 3, 4, or 5"
+        }
+      ]
+    },
+    {
+      "id": "US3",
+      "title": "View Payment History and Audit Trail",
+      "priority": "P3",
+      "description": "Operators need to view complete payment history for claims, including all previous authorizations, amounts, dates, and operators who made changes for audit and compliance purposes.",
+      "rationale": "Important for audit and compliance, but not required for basic payment operations. Can be added after core payment functionality works.",
+      "test": "Can be tested by retrieving a claim with existing payment history and verifying that all historical records are displayed with correct dates, amounts, operators, and operation codes.",
+      "scenarios": [
+        {
+          "given": "a claim with payment history",
+          "when": "the operator views the claim",
+          "then": "the system displays all historical payment records sorted by occurrence number"
+        },
+        {
+          "given": "a payment history record",
+          "when": "displayed",
+          "then": "it shows operation code, date, time, operator, principal value, correction value, beneficiary, and accounting status"
+        },
+        {
+          "given": "multiple payments for the same claim",
+          "when": "viewing history",
+          "then": "each record shows the cumulative effect on reserve and pending values"
+        }
+      ]
+    },
+    {
+      "id": "US5",
+      "title": "Manage Claim Phase and Workflow",
+      "priority": "P5",
+      "description": "The system must track and update claim processing phases (abertura, fechamento) based on events, maintaining phase history and allowing operators to view current phase status.",
+      "rationale": "Important for workflow management but not critical for basic payment authorization. Can be implemented incrementally.",
+      "test": "Can be tested by authorizing a payment and verifying the system updates the claim phase, creates phase tracking records (SI_SINISTRO_FASE), and records the event in claim history (SI_ACOMPANHA_SINI).",
+      "scenarios": [
+        {
+          "given": "a payment authorization is made",
+          "when": "the transaction completes",
+          "then": "the system creates an accompanying record (SI_ACOMPANHA_SINI) with event code, date, user, and description"
+        },
+        {
+          "given": "an event that opens a phase (IND_ALTERACAO_FASE = '1')",
+          "when": "processing",
+          "then": "the system creates a phase record with opening date and future closing date (9999-12-31)"
+        },
+        {
+          "given": "an event that closes a phase (IND_ALTERACAO_FASE = '2')",
+          "when": "processing",
+          "then": "the system updates the existing phase record with actual closing date"
+        },
+        {
+          "given": "a phase is already open or closed",
+          "when": "attempting to repeat the same operation",
+          "then": "the system prevents duplicate phase records"
+        }
+      ]
+    },
+    {
+      "id": "US6",
+      "title": "Migration Status Dashboard",
+      "priority": "P6",
+      "description": "Technical and management teams need a visual dashboard to monitor the migration progress from Visual Age to .NET 9, tracking completed features, pending tasks, system health, and performance metrics in real-time.",
+      "rationale": "Important for project management and stakeholder visibility, but not required for end-user operations. Can be developed in parallel with core functionality.",
+      "test": "Can be tested by accessing the dashboard and verifying that all migration statistics, progress indicators, feature completion status, and system health metrics are displayed accurately and update in real-time.",
+      "scenarios": [
+        {
+          "given": "the migration project is in progress",
+          "when": "accessing the dashboard",
+          "then": "the system displays overall migration progress percentage with visual progress bar"
+        },
+        {
+          "given": "multiple user stories are being implemented",
+          "when": "viewing the dashboard",
+          "then": "each user story shows its completion status (Not Started, In Progress, Completed, Blocked) with progress indicators"
+        },
+        {
+          "given": "system components are being migrated",
+          "when": "viewing the dashboard",
+          "then": "it displays component-level migration status including screens, business rules, database integrations, and validation processes"
+        },
+        {
+          "given": "automated tests are running",
+          "when": "viewing the dashboard",
+          "then": "it shows test execution results, pass/fail rates, and code coverage metrics"
+        },
+        {
+          "given": "performance benchmarks are established",
+          "when": "viewing the dashboard",
+          "then": "it displays comparison metrics between legacy Visual Age system and new .NET 9 implementation (response times, throughput, resource usage)"
+        },
+        {
+          "given": "the dashboard is being viewed",
+          "when": "data updates occur",
+          "then": "the dashboard automatically refreshes without requiring manual page reload"
+        },
+        {
+          "given": "the user needs detailed information",
+          "when": "clicking on any dashboard card or metric",
+          "then": "the system displays drill-down details with historical trends and specific task breakdowns"
+        }
+      ]
+    }
+  ],
+  "functional_requirements": {
+    "Core Search and Retrieval": [
+      {
+        "id": "FR-001",
+        "description": "System MUST allow operators to search claims using one of three mutually exclusive criteria: protocol number (fonte + protsini + dac), claim number (orgsin + rmosin + numsin), or leader code + leader claim number (codlider + sinlid)"
+      },
+      {
+        "id": "FR-002",
+        "description": "System MUST validate that at least one complete search criterion is provided before executing search"
+      },
+      {
+        "id": "FR-003",
+        "description": "System MUST retrieve claim data from master table (TMESTSIN) and display protocol, branch, policy number, claim number, insured name, expected reserve, total payments, and pending value"
+      },
+      {
+        "id": "FR-004",
+        "description": "System MUST display error message \"DOCUMENTO XXXXXXXXXXXXXXX NAO CADASTRADO\" when claim is not found"
+      },
+      {
+        "id": "FR-005",
+        "description": "System MUST retrieve branch name from branch master table (TGERAMO) using branch code from claim"
+      }
+    ],
+    "Payment Authorization": [
+      {
+        "id": "FR-006",
+        "description": "System MUST require payment type selection from values 1, 2, 3, 4, or 5"
+      },
+      {
+        "id": "FR-007",
+        "description": "System MUST require principal amount (valor principal) as numeric mandatory field"
+      },
+      {
+        "id": "FR-008",
+        "description": "System MUST allow correction value (valor da correcao) as optional numeric field"
+      },
+      {
+        "id": "FR-009",
+        "description": "System MUST conditionally require beneficiary name (favorecido) based on insurance type: optional when tpsegu = 0, mandatory otherwise"
+      },
+      {
+        "id": "FR-010",
+        "description": "System MUST validate all numeric fields accept only valid numeric input"
+      },
+      {
+        "id": "FR-011",
+        "description": "System MUST validate policy type (tipo de apolice) as mandatory field accepting only values 1 or 2"
+      }
+    ],
+    "Transaction Recording": [
+      {
+        "id": "FR-012",
+        "description": "System MUST create history record (THISTSIN) with operation code 1098 when payment is authorized"
+      },
+      {
+        "id": "FR-013",
+        "description": "System MUST record current system date from system table (DTMOVABE from TSISTEMA where IDSISTEM='SI') as transaction date"
+      },
+      {
+        "id": "FR-014",
+        "description": "System MUST record current system time (HORAOPER) when creating history record"
+      },
+      {
+        "id": "FR-015",
+        "description": "System MUST increment claim occurrence counter (ocorhist) by 1 in master record (TMESTSIN) after successful authorization"
+      },
+      {
+        "id": "FR-016",
+        "description": "System MUST convert principal and correction amounts to standardized currency (BTNF) using conversion rates from unit table (TGEUNIMO) valid for transaction date"
+      },
+      {
+        "id": "FR-017",
+        "description": "System MUST calculate and store total value (VALTOTBT) as sum of principal (VALPRIBT) and correction (CRRMONBT) in standardized currency"
+      },
+      {
+        "id": "FR-018",
+        "description": "System MUST initialize accounting status (SITCONTB) as '0' and situation (SITUACAO) as '0' for new history records"
+      },
+      {
+        "id": "FR-019",
+        "description": "System MUST initialize correction type (TIPCRR) as '5' for all payment authorizations"
+      }
+    ],
+    "Product-Specific Validation": [
+      {
+        "id": "FR-020",
+        "description": "System MUST identify consortium products by product codes 6814, 7701, or 7709 and route to consortium validation process (CNOUA)"
+      },
+      {
+        "id": "FR-021",
+        "description": "System MUST check contract table (EF_CONTR_SEG_HABIT) for contract number and route to EFP validation (SIPUA) when NUM_CONTRATO > 0"
+      },
+      {
+        "id": "FR-022",
+        "description": "System MUST route to HB validation process (SIMDA) for non-consortium products or when contract is not in EFP tables"
+      },
+      {
+        "id": "FR-023",
+        "description": "System MUST display specific error messages from validation routines when validation fails"
+      },
+      {
+        "id": "FR-024",
+        "description": "System MUST halt transaction processing if validation routine returns error code (EZERT8 != '00000000')"
+      }
+    ],
+    "Phase and Workflow Management": [
+      {
+        "id": "FR-025",
+        "description": "System MUST create claim accompaniment record (SI_ACOMPANHA_SINI) with event code, transaction date, user ID, and description when payment is authorized"
+      },
+      {
+        "id": "FR-026",
+        "description": "System MUST determine phase changes based on event configuration (SI_REL_FASE_EVENTO) for the event and transaction date"
+      },
+      {
+        "id": "FR-027",
+        "description": "System MUST create phase opening record with future closing date (9999-12-31) when phase indication is '1' (abertura)"
+      },
+      {
+        "id": "FR-028",
+        "description": "System MUST update phase closing date to actual date when phase indication is '2' (fechamento)"
+      },
+      {
+        "id": "FR-029",
+        "description": "System MUST prevent duplicate phase records for the same claim, phase, and event combination"
+      },
+      {
+        "id": "FR-030",
+        "description": "System MUST rollback all database changes if any phase update operation fails"
+      }
+    ],
+    "User Interface": [
+      {
+        "id": "FR-031",
+        "description": "System MUST preserve existing visual styling from Site.css stylesheet for consistent user experience"
+      },
+      {
+        "id": "FR-032",
+        "description": "System MUST display all claim information fields clearly labeled with Portuguese field names matching original system"
+      },
+      {
+        "id": "FR-033",
+        "description": "System MUST provide clear visual distinction between search screen (initial entry) and claim detail screen (after successful search)"
+      },
+      {
+        "id": "FR-034",
+        "description": "System MUST display validation errors in red color (#e80c4d) consistent with existing stylesheet"
+      },
+      {
+        "id": "FR-035",
+        "description": "System MUST maintain responsive design supporting both desktop and mobile viewports as defined in Site.css"
+      },
+      {
+        "id": "FR-036",
+        "description": "System MUST display Caixa Seguradora logo in the header using the provided base64-encoded PNG image data"
+      },
+      {
+        "id": "FR-037",
+        "description": "System MUST position the logo prominently in the header area consistent with insurance industry web application standards"
+      }
+    ],
+    "Migration Dashboard": [
+      {
+        "id": "FR-038",
+        "description": "System MUST provide a migration status dashboard accessible to technical and management teams showing overall project progress"
+      },
+      {
+        "id": "FR-039",
+        "description": "Dashboard MUST display migration progress as percentage with visual progress bar showing completed vs total work"
+      },
+      {
+        "id": "FR-040",
+        "description": "Dashboard MUST show individual user story status (Not Started, In Progress, Completed, Blocked) with color-coded indicators"
+      },
+      {
+        "id": "FR-041",
+        "description": "Dashboard MUST display component-level migration status for: screens (2 screens), business rules (42 rules), database integrations (10 entities), validation processes (3 external services)"
+      },
+      {
+        "id": "FR-042",
+        "description": "Dashboard MUST show automated test results including total tests, passed tests, failed tests, and code coverage percentage"
+      },
+      {
+        "id": "FR-043",
+        "description": "Dashboard MUST display performance comparison metrics between legacy Visual Age and new .NET 9 system including average response time, peak concurrent users, and throughput"
+      },
+      {
+        "id": "FR-044",
+        "description": "Dashboard MUST auto-refresh data at configurable intervals (default: 30 seconds) without requiring manual page reload"
+      },
+      {
+        "id": "FR-045",
+        "description": "Dashboard MUST provide drill-down capability allowing users to click on any metric to view detailed breakdowns and historical trends"
+      },
+      {
+        "id": "FR-046",
+        "description": "Dashboard MUST display system health indicators including API availability, database connectivity, and external service status (CNOUA, SIPUA, SIMDA)"
+      },
+      {
+        "id": "FR-047",
+        "description": "Dashboard MUST follow visual design similar to the reference dashboard (https://sicoob-sge3-jv1x.vercel.app/dashboard) with card-based layout, charts, and progress indicators"
+      },
+      {
+        "id": "FR-048",
+        "description": "Dashboard MUST use consistent branding with Caixa Seguradora logo and Site.css color scheme"
+      },
+      {
+        "id": "FR-049",
+        "description": "Dashboard MUST be responsive and functional on both desktop and mobile viewports"
+      },
+      {
+        "id": "FR-050",
+        "description": "Dashboard MUST display recent migration activities timeline showing last 10 completed tasks with timestamps and responsible team members"
+      }
+    ],
+    "Security and Audit": [
+      {
+        "id": "FR-051",
+        "description": "System MUST record operator user ID (EZEUSRID) on all transaction history records"
+      },
+      {
+        "id": "FR-052",
+        "description": "System MUST record operator user ID on all phase and accompaniment records for audit trail"
+      },
+      {
+        "id": "FR-053",
+        "description": "System MUST maintain referential integrity across claim master (TMESTSIN), history (THISTSIN), phase (SI_SINISTRO_FASE), and accompaniment (SI_ACOMPANHA_SINI) tables"
+      },
+      {
+        "id": "FR-054",
+        "description": "System MUST implement database transaction rollback capability (EZEROLLB) for error conditions"
+      },
+      {
+        "id": "FR-055",
+        "description": "System MUST preserve all original business rules, validations, and data transformations from legacy system without modification"
+      }
+    ],
+    "Key Entities": []
+  },
+  "business_rules": [],
+  "database_entities": [
+    {
+      "name": "Claim Master (TMESTSIN)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Claim History (THISTSIN)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Branch Master (TGERAMO)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Currency Unit (TGEUNIMO)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "System Control (TSISTEMA)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Policy Master (TAPOLICE)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Claim Accompaniment (SI_ACOMPANHA_SINI)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Claim Phase (SI_SINISTRO_FASE)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Phase-Event Relationship (SI_REL_FASE_EVENTO)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Consortium Contract (EF_CONTR_SEG_HABIT)",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Migration Status",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Component Migration Tracking",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Performance Metrics",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Search Claim by Protocol",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Authorize Payment",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Track Phase Changes",
+      "table": "",
+      "description": "",
+      "fields": []
+    },
+    {
+      "name": "Dashboard Queries",
+      "table": "",
+      "description": "",
+      "fields": []
+    }
+  ],
+  "success_criteria": [
+    {
+      "id": "SC-001",
+      "description": "Operators can search and retrieve any claim in under 3 seconds using protocol number, claim number, or leader code"
+    },
+    {
+      "id": "SC-002",
+      "description": "Operators can complete a full payment authorization cycle (search, validate, enter details, confirm) in under 90 seconds for standard claims"
+    },
+    {
+      "id": "SC-003",
+      "description": "System maintains 100% data accuracy when migrating existing claim records from legacy system tables to new system"
+    },
+    {
+      "id": "SC-004",
+      "description": "System preserves 100% of existing business rules and validations from legacy application without functional regressions"
+    },
+    {
+      "id": "SC-005",
+      "description": "User interface renders identically to legacy system appearance using migrated Site.css stylesheet on desktop browsers"
+    },
+    {
+      "id": "SC-006",
+      "description": "System successfully processes payment authorizations for all product types including consortium products (6814, 7701, 7709) and standard insurance products"
+    },
+    {
+      "id": "SC-007",
+      "description": "System creates complete audit trail with operator ID, timestamp, and operation details for 100% of payment authorizations"
+    },
+    {
+      "id": "SC-008",
+      "description": "System handles monetary conversions with accuracy to 2 decimal places in standardized currency (BTNF) for all transactions"
+    },
+    {
+      "id": "SC-009",
+      "description": "System prevents data corruption by successfully rolling back transactions when validation or phase update operations fail"
+    },
+    {
+      "id": "SC-010",
+      "description": "User interface remains responsive and functional on mobile devices (max-width: 850px) as defined in Site.css media queries"
+    },
+    {
+      "id": "SC-011",
+      "description": "System integrates successfully with all three validation processes (CNOUA for consortium, SIPUA for EFP contracts, SIMDA for HB contracts) maintaining existing integration contracts"
+    },
+    {
+      "id": "SC-012",
+      "description": "95% of operators successfully complete their first payment authorization without training beyond existing legacy system knowledge"
+    },
+    {
+      "id": "SC-013",
+      "description": "Caixa Seguradora logo displays clearly and professionally in all supported browsers and viewport sizes"
+    },
+    {
+      "id": "SC-014",
+      "description": "Migration dashboard displays accurate real-time status with data refresh occurring within 30 seconds of any project update"
+    },
+    {
+      "id": "SC-015",
+      "description": "Dashboard provides complete visibility into all 6 user stories, 55 functional requirements, 10 database entities, and 3 external service integrations"
+    },
+    {
+      "id": "SC-016",
+      "description": "Technical and management teams can identify project bottlenecks and blocking issues within 5 minutes of accessing the dashboard"
+    },
+    {
+      "id": "SC-017",
+      "description": "Dashboard performance metrics show side-by-side comparison of legacy Visual Age vs new .NET 9 system with at least 5 key metrics (response time, throughput, concurrent users, memory usage, error rate)"
+    },
+    {
+      "id": "SC-018",
+      "description": "100% of dashboard cards and metrics support drill-down functionality to view detailed information and historical trends"
+    },
+    {
+      "id": "SC-019",
+      "description": "Dashboard visual design follows reference implementation with card-based layout, progress bars, charts, and status indicators rendering correctly on desktop and mobile viewports\n\n## Branding Assets\n\n### Logo Specification\n\nThe Caixa Seguradora logo MUST be displayed in the application header using the following base64-encoded PNG image:\n\n```\ndata:image/png;base64,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\n```\n\nThis logo represents Caixa Seguradora's brand identity and MUST be rendered in the application header to maintain brand consistency across the migrated application.\n\n### Dashboard Reference Design\n\nThe migration status dashboard MUST follow the visual design and UX patterns demonstrated in the reference implementation at: https://sicoob-sge3-jv1x.vercel.app/dashboard\n\n**Key Design Elements from Reference**:"
+    }
+  ],
+  "assumptions": [
+    "The existing database schema for all referenced tables (TMESTSIN, THISTSIN, TGERAMO, TGEUNIMO, TSISTEMA, TAPOLICE, SI_ACOMPANHA_SINI, SI_SINISTRO_FASE, SI_REL_FASE_EVENTO, EF_CONTR_SEG_HABIT) will remain unchanged and accessible to the new .NET 9 application",
+    "External validation processes (CNOUA, SIPUA, SIMDA) can be integrated via web service calls or will be migrated to .NET services with compatible interfaces",
+    "Current business date logic (TSISTEMA table with IDSISTEM='SI') will be available either through existing table or equivalent .NET service",
+    "Currency conversion rates in TGEUNIMO table are maintained by external processes and will continue to be available with valid date ranges",
+    "Operator authentication and authorization will be handled by existing enterprise authentication system or equivalent (user ID captured as EZEUSRID in legacy will map to current user principal)",
+    "The Site.css stylesheet represents the complete visual design requirements and no additional UI/UX design is needed",
+    "Database transaction support (commit/rollback) is available through standard .NET transaction mechanisms (TransactionScope or EF Core transactions)",
+    "Legacy CICS map groups (SIWEG, SIWEGH) referenced in the Visual Age program represent screen layouts that will be recreated as React components using Site.css styling",
+    "The maximum width of 960px defined in .content-wrapper class represents the desired desktop layout constraint",
+    "Legacy error codes and messages should be preserved exactly for operator familiarity and existing documentation",
+    "The operation code 1098 is the standard code for payment authorization and should not be changed",
+    "Correction type '5' represents a standard correction method that should be maintained",
+    "The insurance type flag (tipseg) from master record and policy type (tipreg) business rules remain current and should not be modified",
+    "The provided Caixa Seguradora logo PNG image is the current approved brand asset for use in all applications",
+    "Migration dashboard will track project progress in real-time and does not require historical data from the Visual Age system",
+    "Dashboard metrics and status tracking can be stored in a separate database schema or storage mechanism independent of legacy claim processing tables",
+    "The reference dashboard design at https://sicoob-sge3-jv1x.vercel.app/dashboard provides visual design inspiration but the implementation can use different charting libraries or components as long as the visual appearance is similar\n\n## Dependencies",
+    "Access to existing mainframe database tables (DB2 or equivalent) containing claim, policy, and configuration data",
+    "Web service endpoints or migration strategy for external validation processes (CNOUA, SIPUA, SIMDA)",
+    ".NET 9 runtime environment with appropriate database drivers (e.g., IBM.Data.DB2 or Entity Framework Core provider)",
+    "React 18+ framework and build tooling for frontend application",
+    "Enterprise authentication service integration for operator identity management",
+    "Currency conversion rate maintenance process to ensure TGEUNIMO table remains current",
+    "System date management process to ensure TSISTEMA table provides accurate business dates",
+    "Charting and data visualization libraries for dashboard (e.g., Chart.js, Recharts, or similar)",
+    "Real-time data update mechanism for dashboard refresh (WebSockets, SignalR, or polling)",
+    "Storage mechanism for migration tracking data (can be separate from legacy claim database)"
+  ],
+  "timeline_phases": [],
+  "technology_stack": {
+    "backend": [],
+    "frontend": [],
+    "database": [],
+    "infrastructure": [],
+    "tools": []
+  },
+  "component_specifications": {
+    "backend": [],
+    "frontend": [
+      {
+        "name": "UI - FR-031",
+        "description": "System MUST preserve existing visual styling from Site.css stylesheet for consistent user experience"
+      },
+      {
+        "name": "UI - FR-032",
+        "description": "System MUST display all claim information fields clearly labeled with Portuguese field names matching original system"
+      },
+      {
+        "name": "UI - FR-033",
+        "description": "System MUST provide clear visual distinction between search screen (initial entry) and claim detail screen (after successful search)"
+      },
+      {
+        "name": "UI - FR-034",
+        "description": "System MUST display validation errors in red color (#e80c4d) consistent with existing stylesheet"
+      },
+      {
+        "name": "UI - FR-035",
+        "description": "System MUST maintain responsive design supporting both desktop and mobile viewports as defined in Site.css"
+      },
+      {
+        "name": "UI - FR-036",
+        "description": "System MUST display Caixa Seguradora logo in the header using the provided base64-encoded PNG image data"
+      },
+      {
+        "name": "UI - FR-037",
+        "description": "System MUST position the logo prominently in the header area consistent with insurance industry web application standards"
+      }
+    ],
+    "integration": []
+  },
+  "total_phases": 0,
+  "total_weeks": 12,
+  "project_context": "Migração do sistema legado SIWEA de IBM VisualAge para stack moderna",
+  "fpa": {
+    "ei": {
+      "count": 0,
+      "complexity": "Average",
+      "points": 0
+    },
+    "eo": {
+      "count": 0,
+      "complexity": "Average",
+      "points": 0
+    },
+    "eq": {
+      "count": 2,
+      "complexity": "Average",
+      "points": 8
+    },
+    "ilf": {
+      "count": 17,
+      "complexity": "Average",
+      "points": 170
+    },
+    "eif": {
+      "count": 3,
+      "complexity": "Low",
+      "points": 21
+    },
+    "ufp": 199,
+    "gsc_scores": [
+      3,
+      4,
+      3,
+      4,
+      3,
+      4,
+      3,
+      3,
+      4,
+      3,
+      4,
+      3,
+      3,
+      4
+    ],
+    "vaf": 1.13,
+    "afp": 225
+  },
+  "budget": {
+    "development_cost": 168750,
+    "infrastructure_cost": 15500,
+    "training_cost": 5000,
+    "additional_costs": 9500,
+    "contingency_cost": 29062.5,
+    "total_investment": 222812.5,
+    "milestones": [
+      {
+        "percentage": 20,
+        "description": "Assinatura do Contrato"
+      },
+      {
+        "percentage": 20,
+        "description": "Entrega da Análise"
+      },
+      {
+        "percentage": 30,
+        "description": "Desenvolvimento Core"
+      },
+      {
+        "percentage": 20,
+        "description": "Testes e Homologação"
+      },
+      {
+        "percentage": 10,
+        "description": "Go-Live"
+      }
+    ]
+  },
+  "development_cost": 168750,
+  "infrastructure_cost": 15500,
+  "training_cost": 5000,
+  "contingency_cost": 29062.5,
+  "total_investment": 222812.5,
+  "cost_reduction_percentage": 40,
+  "performance_improvement_percentage": 60,
+  "roi_percentage": 150,
+  "roi_period": 18,
+  "tco_reduction": 35,
+  "productivity_increase": 25,
+  "section_01_path": "../contracts/section-templates/01-executive-summary.tex",
+  "section_02_path": "../contracts/section-templates/02-legacy-analysis.tex",
+  "section_03_path": "../contracts/section-templates/03-target-architecture.tex",
+  "section_04_path": "../contracts/section-templates/04-function-points.tex",
+  "section_05_path": "../contracts/section-templates/05-timeline.tex",
+  "section_06_path": "../contracts/section-templates/06-migrai-methodology.tex",
+  "section_07_path": "../contracts/section-templates/07-budget-roi.tex",
+  "section_08_path": "../contracts/section-templates/08-component-specs.tex",
+  "section_09_path": "../contracts/section-templates/09-risk-management.tex",
+  "section_10_path": "../contracts/section-templates/10-appendices.tex",
+  "legacy_architecture_description": "Sistema monolítico em IBM VisualAge EZEE 4.40",
+  "legacy_technologies": [
+    "IBM VisualAge EZEE",
+    "DB2",
+    "CICS",
+    "JCL",
+    "COBOL"
+  ],
+  "clean_architecture_description": "Arquitetura em camadas seguindo princípios SOLID",
+  "legacy_database_description": "13 tabelas principais com relacionamentos complexos",
+  "milestones_description": "8 marcos principais ao longo de 12 semanas"
+}

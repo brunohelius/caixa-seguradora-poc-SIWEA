@@ -1,0 +1,91 @@
+% Headings Style Package for Visual Age Migration Document
+% Defines heading styles and formatting
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{headings}[2025/10/23 Custom heading styles]
+
+% Required packages
+\RequirePackage{titlesec}
+\RequirePackage{xcolor}
+
+% Define heading formats
+% H1 - Chapter (18pt)
+\titleformat{\chapter}[display]
+    {\normalfont\huge\bfseries\color{caixablue}}
+    {\chaptertitlename\ \thechapter}
+    {20pt}
+    {\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{40pt}
+
+% H2 - Section (16pt)
+\titleformat{\section}
+    {\normalfont\Large\bfseries\color{caixablue}}
+    {\thesection}
+    {1em}
+    {}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+% H3 - Subsection (14pt)
+\titleformat{\subsection}
+    {\normalfont\large\bfseries\color{caixadarkblue}}
+    {\thesubsection}
+    {1em}
+    {}
+\titlespacing*{\subsection}{0pt}{9pt}{4.5pt}
+
+% H4 - Subsubsection (12pt)
+\titleformat{\subsubsection}
+    {\normalfont\normalsize\bfseries\color{caixadarkblue}}
+    {\thesubsubsection}
+    {1em}
+    {}
+\titlespacing*{\subsubsection}{0pt}{6pt}{3pt}
+
+% Paragraph
+\titleformat{\paragraph}[runin]
+    {\normalfont\normalsize\bfseries}
+    {\theparagraph}
+    {1em}
+    {}
+\titlespacing*{\paragraph}{0pt}{3pt}{6pt}
+
+% Subparagraph
+\titleformat{\subparagraph}[runin]
+    {\normalfont\normalsize\itshape}
+    {\thesubparagraph}
+    {1em}
+    {}
+\titlespacing*{\subparagraph}{0pt}{3pt}{6pt}
+
+% Table of contents formatting
+\RequirePackage{tocloft}
+
+% Chapter in TOC
+\renewcommand{\cftchapfont}{\bfseries\color{caixablue}}
+\renewcommand{\cftchappagefont}{\bfseries\color{caixablue}}
+\setlength{\cftbeforechapskip}{6pt}
+
+% Section in TOC
+\renewcommand{\cftsecfont}{\color{caixadarkblue}}
+\renewcommand{\cftsecpagefont}{\color{caixadarkblue}}
+\setlength{\cftbeforesecskip}{3pt}
+
+% Subsection in TOC
+\renewcommand{\cftsubsecfont}{\small}
+\setlength{\cftbeforesubsecskip}{1pt}
+
+% Custom heading commands
+\newcommand{\chapterheading}[1]{%
+    \chapter{#1}
+    \thispagestyle{fancy}
+}
+
+\newcommand{\sectionheading}[1]{%
+    \section{#1}
+}
+
+\newcommand{\subsectionheading}[1]{%
+    \subsection{#1}
+}
+
+\endinput

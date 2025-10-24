@@ -1,0 +1,155 @@
+# Document Configuration for Visual Age Migration Analysis & Planning Document
+# Generated: 2025-10-23
+# Feature: 001-visual-age-migration-pdf
+
+metadata:
+  title: "Visual Age Migration Analysis & Planning Document"
+  subtitle: "IBM VisualAge EZEE to .NET 9 + React 19 Transformation"
+  author: "Caixa Seguradora Architecture Team"
+  version: "1.0"
+  date: "2025-10-23"
+  confidentiality: "Internal Use Only"
+  language: "pt-BR"
+
+branding:
+  logo_path: "../contracts/assets/caixa-logo.png"
+  primary_color: "#0066CC"
+  success_color: "#00A859"
+  warning_color: "#FFCC00"
+  error_color: "#E80C4D"
+  font_family: "Helvetica"
+  header_height: "20mm"
+  footer_height: "15mm"
+
+document_settings:
+  paper_size: "A4"
+  orientation: "portrait"
+  margins:
+    top: "25mm"
+    bottom: "25mm"
+    left: "20mm"
+    right: "20mm"
+  font_size: "11pt"
+  line_spacing: "1.5"
+  paragraph_spacing: "6pt"
+
+sections:
+  - id: "executive-summary"
+    title: "Sumário Executivo"
+    template: "01-executive-summary.tex"
+    page_break: true
+    numbering: "1"
+
+  - id: "legacy-analysis"
+    title: "Análise do Sistema Legado"
+    template: "02-legacy-analysis.tex"
+    page_break: true
+    numbering: "2"
+
+  - id: "target-architecture"
+    title: "Arquitetura Alvo"
+    template: "03-target-architecture.tex"
+    page_break: true
+    numbering: "3"
+
+  - id: "function-points"
+    title: "Análise de Pontos de Função"
+    template: "04-function-points.tex"
+    page_break: true
+    numbering: "4"
+
+  - id: "timeline"
+    title: "Cronograma do Projeto"
+    template: "05-timeline.tex"
+    page_break: true
+    numbering: "5"
+
+  - id: "migrai-methodology"
+    title: "Metodologia MIGRAI"
+    template: "06-migrai-methodology.tex"
+    page_break: true
+    numbering: "6"
+
+  - id: "budget-roi"
+    title: "Orçamento e ROI"
+    template: "07-budget-roi.tex"
+    page_break: true
+    numbering: "7"
+
+  - id: "component-specs"
+    title: "Especificações de Componentes"
+    template: "08-component-specs.tex"
+    page_break: true
+    numbering: "8"
+
+  - id: "risk-management"
+    title: "Gestão de Riscos"
+    template: "09-risk-management.tex"
+    page_break: true
+    numbering: "9"
+
+  - id: "appendices"
+    title: "Apêndices"
+    template: "10-appendices.tex"
+    page_break: true
+    numbering: "A"
+
+paths:
+  source_specs: "../../001-visualage-dotnet-migration"
+  templates: "../templates/document-generation"
+  section_templates: "../contracts/section-templates"
+  diagram_definitions: "../contracts/diagram-definitions"
+  assets: "../contracts/assets"
+  output_dir: "../output"
+  intermediate_dir: "../output/intermediate"
+  diagrams_dir: "../output/diagrams"
+  final_pdf: "../output/migration-analysis-plan.pdf"
+
+latex_settings:
+  compiler: "pdflatex"
+  passes: 3
+  halt_on_error: false
+  interaction_mode: "nonstopmode"
+  packages:
+    - "booktabs"
+    - "fancyhdr"
+    - "xcolor"
+    - "hyperref"
+    - "graphicx"
+    - "geometry"
+    - "siunitx"
+    - "pgfgantt"
+    - "listings"
+    - "babel[portuguese]"
+
+plantuml_settings:
+  jar_path: "../plantuml.jar"
+  output_format: "pdf"
+  dpi: 300
+
+validation:
+  min_pages: 50
+  max_pages: 70
+  required_sections: 10
+  min_hyperlinks: 10
+  check_pdf_a: true
+
+fpa_settings:
+  # Function Point Analysis settings based on IFPUG 4.3.1
+  rate_per_fp: 750  # R$ per function point
+  vaf_base: 0.65
+  vaf_multiplier: 0.01
+
+budget_settings:
+  contingency_percentage: 15
+  payment_milestones:
+    - percentage: 20
+      description: "Assinatura do Contrato"
+    - percentage: 20
+      description: "Entrega da Análise"
+    - percentage: 30
+      description: "Desenvolvimento Core"
+    - percentage: 20
+      description: "Testes e Homologação"
+    - percentage: 10
+      description: "Go-Live"

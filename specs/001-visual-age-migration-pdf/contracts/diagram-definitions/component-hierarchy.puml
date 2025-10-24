@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+title React Component Hierarchy
+
+package "App" {
+    component [App.tsx] as App
+
+    package "Layout" {
+        component [Header.tsx]
+        component [Footer.tsx]
+        component [Sidebar.tsx]
+    }
+
+    package "Pages" {
+        component [ClaimSearch.tsx]
+        component [PaymentAuth.tsx]
+        component [History.tsx]
+        component [Dashboard.tsx]
+    }
+
+    package "Components" {
+        component [ClaimForm.tsx]
+        component [ClaimDetails.tsx]
+        component [PaymentForm.tsx]
+        component [HistoryTable.tsx]
+        component [Charts.tsx]
+    }
+}
+
+App --> Header
+App --> Footer
+App --> Sidebar
+App --> ClaimSearch
+App --> PaymentAuth
+App --> History
+App --> Dashboard
+
+ClaimSearch --> ClaimForm
+ClaimSearch --> ClaimDetails
+PaymentAuth --> PaymentForm
+History --> HistoryTable
+Dashboard --> Charts
+
+@enduml

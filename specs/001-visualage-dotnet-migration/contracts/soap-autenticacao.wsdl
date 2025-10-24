@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:tns="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1"
+             targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1"
+             name="AutenticacaoService">
+
+  <documentation>
+    Serviço de Autenticação - Sistema de Autorização de Pagamento de Indenizações
+
+    Namespace: http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1
+    Versão: 1.0
+
+    Descrição:
+    Serviço SOAP para autenticação de operadores do sistema SIWEA (Claims Indemnity Payment Authorization).
+    Compatível com o serviço legado IBM Visual Age EZEE.
+
+    Operações:
+    - autenticar: Autentica um usuário e retorna um token de sessão
+    - validarSessao: Valida se um token de sessão está ativo
+    - encerrarSessao: Encerra uma sessão ativa
+  </documentation>
+
+  <types>
+    <xsd:schema targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1"
+                elementFormDefault="qualified">
+
+      <!-- Requisição de Autenticação -->
+      <xsd:element name="autenticarRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="codUsuario" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Código do usuário (EZEUSRID)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="desSenha" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Senha do usuário</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codSistema" type="xsd:string" minOccurs="1" default="SI">
+              <xsd:annotation>
+                <xsd:documentation>Código do sistema (padrão: SI para Sinistros)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ipOrigem" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Endereço IP de origem da requisição (opcional)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Autenticação -->
+      <xsd:element name="autenticarResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Indica se a autenticação foi bem-sucedida</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão (JWT) se autenticação bem-sucedida</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codUsuario" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Código do usuário autenticado</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="nomeUsuario" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Nome completo do usuário</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dataExpiracao" type="xsd:dateTime" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Data e hora de expiração da sessão</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="perfis" type="tns:ArrayOfString" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Lista de perfis/roles do usuário</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codigoErro" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Código de erro se autenticação falhou</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de erro em português</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Validação de Sessão -->
+      <xsd:element name="validarSessaoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão a ser validado</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Validação de Sessão -->
+      <xsd:element name="validarSessaoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="valida" type="xsd:boolean" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Indica se a sessão é válida</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codUsuario" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Código do usuário da sessão</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dataExpiracao" type="xsd:dateTime" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Data e hora de expiração da sessão</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de erro se sessão inválida</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Encerramento de Sessão -->
+      <xsd:element name="encerrarSessaoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão a ser encerrada</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Encerramento de Sessão -->
+      <xsd:element name="encerrarSessaoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Indica se a sessão foi encerrada com sucesso</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de confirmação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Tipo complexo: Array de Strings -->
+      <xsd:complexType name="ArrayOfString">
+        <xsd:sequence>
+          <xsd:element name="string" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Tipo complexo: Erro de Autenticação (SOAP Fault) -->
+      <xsd:element name="AutenticacaoFault">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="codigoErro" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Código do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de erro em português</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="detalhes" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Detalhes adicionais do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="timestamp" type="xsd:dateTime" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Data e hora do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- Mensagens -->
+  <message name="autenticarRequestMsg">
+    <part name="parameters" element="tns:autenticarRequest"/>
+  </message>
+
+  <message name="autenticarResponseMsg">
+    <part name="parameters" element="tns:autenticarResponse"/>
+  </message>
+
+  <message name="validarSessaoRequestMsg">
+    <part name="parameters" element="tns:validarSessaoRequest"/>
+  </message>
+
+  <message name="validarSessaoResponseMsg">
+    <part name="parameters" element="tns:validarSessaoResponse"/>
+  </message>
+
+  <message name="encerrarSessaoRequestMsg">
+    <part name="parameters" element="tns:encerrarSessaoRequest"/>
+  </message>
+
+  <message name="encerrarSessaoResponseMsg">
+    <part name="parameters" element="tns:encerrarSessaoResponse"/>
+  </message>
+
+  <message name="AutenticacaoFaultMsg">
+    <part name="fault" element="tns:AutenticacaoFault"/>
+  </message>
+
+  <!-- Port Type (Interface) -->
+  <portType name="AutenticacaoPortType">
+    <documentation>
+      Interface do serviço de autenticação
+    </documentation>
+
+    <operation name="autenticar">
+      <documentation>
+        Autentica um usuário no sistema e retorna um token de sessão (JWT).
+
+        Regras:
+        - Valida credenciais contra Active Directory ou base de usuários
+        - Gera token JWT com expiração de 8 horas
+        - Registra auditoria de login
+        - Retorna perfis/roles do usuário
+      </documentation>
+      <input message="tns:autenticarRequestMsg"/>
+      <output message="tns:autenticarResponseMsg"/>
+      <fault name="AutenticacaoFault" message="tns:AutenticacaoFaultMsg"/>
+    </operation>
+
+    <operation name="validarSessao">
+      <documentation>
+        Valida se um token de sessão está ativo e não expirou.
+
+        Retorna informações do usuário se sessão válida.
+      </documentation>
+      <input message="tns:validarSessaoRequestMsg"/>
+      <output message="tns:validarSessaoResponseMsg"/>
+      <fault name="AutenticacaoFault" message="tns:AutenticacaoFaultMsg"/>
+    </operation>
+
+    <operation name="encerrarSessao">
+      <documentation>
+        Encerra uma sessão ativa (logout).
+
+        Invalida o token e registra auditoria de logout.
+      </documentation>
+      <input message="tns:encerrarSessaoRequestMsg"/>
+      <output message="tns:encerrarSessaoResponseMsg"/>
+      <fault name="AutenticacaoFault" message="tns:AutenticacaoFaultMsg"/>
+    </operation>
+  </portType>
+
+  <!-- Binding SOAP 1.2 -->
+  <binding name="AutenticacaoSOAP12Binding" type="tns:AutenticacaoPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="autenticar">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/autenticar" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap12:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="validarSessao">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/validarSessao" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap12:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="encerrarSessao">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/encerrarSessao" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap12:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Binding SOAP 1.1 (compatibilidade) -->
+  <binding name="AutenticacaoSOAPBinding" type="tns:AutenticacaoPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="autenticar">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/autenticar" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="validarSessao">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/validarSessao" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="encerrarSessao">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1/encerrarSessao" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AutenticacaoFault">
+        <soap:fault name="AutenticacaoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Service -->
+  <service name="AutenticacaoService">
+    <documentation>
+      Serviço de Autenticação - Sistema SIWEA
+      Caixa Seguradora
+
+      Endpoints:
+      - Produção: https://api.caixaseguradora.com.br/soap/autenticacao
+      - Homologação: https://api-hom.caixaseguradora.com.br/soap/autenticacao
+      - Desenvolvimento: https://localhost:5001/soap/autenticacao
+    </documentation>
+
+    <port name="AutenticacaoSOAP12Port" binding="tns:AutenticacaoSOAP12Binding">
+      <soap12:address location="https://api.caixaseguradora.com.br/soap/autenticacao"/>
+    </port>
+
+    <port name="AutenticacaoSOAPPort" binding="tns:AutenticacaoSOAPBinding">
+      <soap:address location="https://api.caixaseguradora.com.br/soap/autenticacao"/>
+    </port>
+  </service>
+
+</definitions>

@@ -1,0 +1,23 @@
+% Function Point Analysis Section
+\section{Contagem de Pontos de Função}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Tipo & Quantidade & Complexidade & Pontos \\
+\midrule
+External Inputs (EI) & {{ fpa.ei.count }} & {{ fpa.ei.complexity }} & {{ fpa.ei.points }} \\
+External Outputs (EO) & {{ fpa.eo.count }} & {{ fpa.eo.complexity }} & {{ fpa.eo.points }} \\
+External Inquiries (EQ) & {{ fpa.eq.count }} & {{ fpa.eq.complexity }} & {{ fpa.eq.points }} \\
+Internal Logical Files (ILF) & {{ fpa.ilf.count }} & {{ fpa.ilf.complexity }} & {{ fpa.ilf.points }} \\
+External Interface Files (EIF) & {{ fpa.eif.count }} & {{ fpa.eif.complexity }} & {{ fpa.eif.points }} \\
+\midrule
+\textbf{UFP Total} & & & \textbf{{{ fpa.ufp }}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Cálculo do AFP}
+VAF = {{ fpa.vaf }}
+AFP = UFP × VAF = {{ fpa.ufp }} × {{ fpa.vaf }} = \textbf{{{ fpa.afp }}}

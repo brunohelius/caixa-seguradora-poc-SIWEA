@@ -1,0 +1,111 @@
+% Master Template for Visual Age Migration Analysis & Planning Document
+% Feature: 001-visual-age-migration-pdf
+% Generated: {{ generation_date }}
+
+\documentclass[11pt,a4paper]{report}
+
+% Include preamble with all package definitions
+\input{preamble}
+
+% Include custom style files
+\usepackage{styles/headings}
+\usepackage{styles/colors}
+\usepackage{styles/diagrams}
+
+% Document metadata
+\title{{{ document_title }}}
+\author{{{ document_author }}}
+\date{{{ document_date }}}
+
+% PDF metadata
+\hypersetup{
+    pdftitle={{{ document_title }}},
+    pdfauthor={{{ document_author }}},
+    pdfsubject={{{ document_subtitle }}},
+    pdfkeywords={Visual Age, Migration, .NET 9, React 19, Caixa Seguradora},
+    pdfproducer={LaTeX with pdflatex},
+    pdfcreator={Visual Age Migration PDF Generator}
+}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    % Logo
+    \includegraphics[width=0.4\textwidth]{{{ logo_path }}}\\[1cm]
+
+    % Title
+    {\huge\bfseries {{ document_title }}}\\[0.5cm]
+    {\Large {{ document_subtitle }}}\\[2cm]
+
+    % Author and date
+    {\large {{ document_author }}}\\[0.5cm]
+    {\large Versão {{ document_version }}}\\[0.5cm]
+    {\large {{ document_date }}}\\[3cm]
+
+    % Confidentiality notice
+    \vfill
+    {\color{caixared}\textbf{{{ confidentiality }}}}
+\end{titlepage}
+
+% Table of contents
+\tableofcontents
+\newpage
+
+% List of figures
+\listoffigures
+\newpage
+
+% List of tables
+\listoftables
+\newpage
+
+% Executive Summary
+\chapter{Sumário Executivo}
+\input{{{ section_01_path }}}
+
+% Legacy System Analysis
+\chapter{Análise do Sistema Legado}
+\input{{{ section_02_path }}}
+
+% Target Architecture
+\chapter{Arquitetura Alvo}
+\input{{{ section_03_path }}}
+
+% Function Point Analysis
+\chapter{Análise de Pontos de Função}
+\input{{{ section_04_path }}}
+
+% Project Timeline
+\chapter{Cronograma do Projeto}
+\input{{{ section_05_path }}}
+
+% MIGRAI Methodology
+\chapter{Metodologia MIGRAI}
+\input{{{ section_06_path }}}
+
+% Budget and ROI
+\chapter{Orçamento e ROI}
+\input{{{ section_07_path }}}
+
+% Component Specifications
+\chapter{Especificações de Componentes}
+\input{{{ section_08_path }}}
+
+% Risk Management
+\chapter{Gestão de Riscos}
+\input{{{ section_09_path }}}
+
+% Appendices
+\appendix
+\chapter{Apêndices}
+\input{{{ section_10_path }}}
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/PaymentAuthorizationResponse.json",
+  "title": "Payment Authorization Response",
+  "description": "Resposta de autorização de pagamento de indenização de sinistro",
+  "type": "object",
+  "required": ["sucesso", "mensagem"],
+  "properties": {
+    "sucesso": {
+      "type": "boolean",
+      "description": "Indica se a autorização foi bem-sucedida",
+      "examples": [true]
+    },
+    "mensagem": {
+      "type": "string",
+      "description": "Mensagem de confirmação ou erro",
+      "examples": ["Pagamento autorizado com sucesso"]
+    },
+    "autorizacao": {
+      "$ref": "#/definitions/PaymentAuthorizationDetail"
+    },
+    "dataCriacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da criação da autorização (ISO 8601)",
+      "examples": ["2025-10-23T14:30:15Z"]
+    }
+  },
+  "definitions": {
+    "PaymentAuthorizationDetail": {
+      "type": "object",
+      "required": [
+        "tipseg",
+        "orgsin",
+        "rmosin",
+        "numsin",
+        "ocorhist",
+        "operacao",
+        "dtmovto",
+        "horaoper",
+        "valpri",
+        "crrmon",
+        "tipcrr",
+        "valpribt",
+        "crrmonbt",
+        "valtotbt",
+        "sitcontb",
+        "situacao",
+        "ezeusrid",
+        "valorPendenteAtualizado"
+      ],
+      "properties": {
+        "tipseg": {
+          "type": "integer",
+          "description": "Tipo de seguro",
+          "examples": [1]
+        },
+        "orgsin": {
+          "type": "integer",
+          "description": "Órgão do sinistro",
+          "examples": [10]
+        },
+        "rmosin": {
+          "type": "integer",
+          "description": "Ramo do sinistro",
+          "examples": [20]
+        },
+        "numsin": {
+          "type": "integer",
+          "description": "Número do sinistro",
+          "examples": [789012]
+        },
+        "ocorhist": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número de ocorrência desta autorização",
+          "examples": [4]
+        },
+        "operacao": {
+          "type": "integer",
+          "const": 1098,
+          "description": "Código de operação (sempre 1098 para autorização de pagamento)",
+          "examples": [1098]
+        },
+        "dtmovto": {
+          "type": "string",
+          "format": "date",
+          "description": "Data do movimento (ISO 8601 date)",
+          "examples": ["2025-10-23"]
+        },
+        "horaoper": {
+          "type": "string",
+          "format": "time",
+          "pattern": "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$",
+          "description": "Hora da operação (HH:mm:ss)",
+          "examples": ["14:30:15"]
+        },
+        "valpri": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor principal (moeda original)",
+          "examples": [25000.00]
+        },
+        "crrmon": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor de correção (moeda original)",
+          "examples": [1250.50]
+        },
+        "nomfav": {
+          "type": "string",
+          "description": "Nome do favorecido",
+          "examples": ["João da Silva Santos"]
+        },
+        "tipcrr": {
+          "type": "string",
+          "const": "5",
+          "description": "Tipo de correção (sempre '5')",
+          "examples": ["5"]
+        },
+        "valpribt": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor principal em BTNF (Bônus do Tesouro Nacional Fiscal)",
+          "examples": [27500.00]
+        },
+        "crrmonbt": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor de correção em BTNF",
+          "examples": [1375.55]
+        },
+        "valtotbt": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor total em BTNF (valpribt + crrmonbt)",
+          "examples": [28875.55]
+        },
+        "sitcontb": {
+          "type": "string",
+          "const": "0",
+          "description": "Situação contábil (sempre '0' para novas autorizações)",
+          "examples": ["0"]
+        },
+        "situacao": {
+          "type": "string",
+          "const": "0",
+          "description": "Situação geral (sempre '0' para novas autorizações)",
+          "examples": ["0"]
+        },
+        "ezeusrid": {
+          "type": "string",
+          "description": "ID do operador que autorizou o pagamento",
+          "examples": ["operador.sistema"]
+        },
+        "valorPendenteAtualizado": {
+          "type": "number",
+          "multipleOf": 0.01,
+          "minimum": 0,
+          "description": "Valor pendente após esta autorização (sdopag - totpag - valtotbt)",
+          "examples": [8124.45]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "sucesso": true,
+      "mensagem": "Pagamento autorizado com sucesso",
+      "autorizacao": {
+        "tipseg": 1,
+        "orgsin": 10,
+        "rmosin": 20,
+        "numsin": 789012,
+        "ocorhist": 4,
+        "operacao": 1098,
+        "dtmovto": "2025-10-23",
+        "horaoper": "14:30:15",
+        "valpri": 25000.00,
+        "crrmon": 1250.50,
+        "nomfav": "João da Silva Santos",
+        "tipcrr": "5",
+        "valpribt": 27500.00,
+        "crrmonbt": 1375.55,
+        "valtotbt": 28875.55,
+        "sitcontb": "0",
+        "situacao": "0",
+        "ezeusrid": "operador.sistema",
+        "valorPendenteAtualizado": 8124.45
+      },
+      "dataCriacao": "2025-10-23T14:30:15Z"
+    }
+  ]
+}

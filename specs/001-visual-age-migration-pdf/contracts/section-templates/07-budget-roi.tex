@@ -1,0 +1,23 @@
+% Budget and ROI Section
+\section{Detalhamento do Orçamento}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lr}
+\toprule
+Categoria & Valor (R\$) \\
+\midrule
+Desenvolvimento ({{ fpa.afp }} FP × R\$ 750) & \num{{{ budget.development_cost }}} \\
+Infraestrutura Azure & \num{{{ budget.infrastructure_cost }}} \\
+Treinamento & \num{{{ budget.training_cost }}} \\
+Contingência (15\%) & \num{{{ budget.contingency_cost }}} \\
+\midrule
+\textbf{Total} & \textbf{\num{{{ budget.total_investment }}}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Marcos de Pagamento}
+{% for milestone in budget.milestones %}
+{{ milestone.percentage }}\% - {{ milestone.description }}
+{% endfor %}

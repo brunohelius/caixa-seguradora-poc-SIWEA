@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:tns="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1"
+             targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1"
+             name="SolicitacaoService">
+
+  <documentation>
+    Serviço de Solicitação - Sistema de Autorização de Pagamento de Indenizações
+
+    Namespace: http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1
+    Versão: 1.0
+
+    Descrição:
+    Serviço SOAP para autorização de pagamentos de sinistros e gestão de solicitações.
+    Compatível com o serviço legado IBM Visual Age EZEE.
+
+    Operações:
+    - autorizarPagamento: Autoriza pagamento de indenização para um sinistro
+    - consultarSolicitacao: Consulta status de uma solicitação de pagamento
+    - cancelarSolicitacao: Cancela uma solicitação pendente
+  </documentation>
+
+  <types>
+    <xsd:schema targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1"
+                elementFormDefault="qualified">
+
+      <!-- Requisição de Autorização de Pagamento -->
+      <xsd:element name="autorizarPagamentoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão do operador</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="sinistro" type="tns:IdentificadorSinistro" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Identificação do sinistro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dadosPagamento" type="tns:DadosPagamento" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Dados do pagamento a ser autorizado</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Autorização de Pagamento -->
+      <xsd:element name="autorizarPagamentoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Indica se a autorização foi bem-sucedida</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="numeroAutorizacao" type="xsd:int" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Número da autorização (ocorhist)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dataMovimento" type="xsd:date" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Data do movimento (dtmovto)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="horaOperacao" type="xsd:time" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Hora da operação (horaoper)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="valorPrincipalBTNF" type="xsd:decimal" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Valor principal convertido para BTNF</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="valorCorrecaoBTNF" type="xsd:decimal" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Valor de correção convertido para BTNF</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="valorTotalBTNF" type="xsd:decimal" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Valor total em BTNF</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="valorPendenteAtualizado" type="xsd:decimal" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Saldo pendente após a autorização</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de confirmação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codigoErro" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Código de erro se autorização falhou</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de erro em português</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="detalhesErro" type="tns:ArrayOfString" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Detalhes adicionais do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Consulta de Solicitação -->
+      <xsd:element name="consultarSolicitacaoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão do operador</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="sinistro" type="tns:IdentificadorSinistro" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Identificação do sinistro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="numeroOcorrencia" type="xsd:int" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Número de ocorrência da solicitação (ocorhist)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Consulta de Solicitação -->
+      <xsd:element name="consultarSolicitacaoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1"/>
+            <xsd:element name="solicitacao" type="tns:DetalheSolicitacao" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Detalhes da solicitação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Cancelamento de Solicitação -->
+      <xsd:element name="cancelarSolicitacaoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1"/>
+            <xsd:element name="sinistro" type="tns:IdentificadorSinistro" minOccurs="1"/>
+            <xsd:element name="numeroOcorrencia" type="xsd:int" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Número de ocorrência a cancelar</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="motivoCancelamento" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Motivo do cancelamento</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Cancelamento de Solicitação -->
+      <xsd:element name="cancelarSolicitacaoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1"/>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Tipos Complexos -->
+
+      <!-- Identificador de Sinistro -->
+      <xsd:complexType name="IdentificadorSinistro">
+        <xsd:sequence>
+          <xsd:element name="tipseg" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Tipo de seguro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="orgsin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Órgão do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="rmosin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Ramo do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numsin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Número do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Dados de Pagamento -->
+      <xsd:complexType name="DadosPagamento">
+        <xsd:sequence>
+          <xsd:element name="tipoPagamento" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Tipo de pagamento (1, 2, 3, 4 ou 5)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorPrincipal" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor principal da indenização</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorCorrecao" type="xsd:decimal" minOccurs="0" default="0">
+            <xsd:annotation>
+              <xsd:documentation>Valor de correção (opcional)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="favorecido" type="xsd:string" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Nome do favorecido/beneficiário (obrigatório se tpsegu != 0)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="tipoApolice" type="xsd:string" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Tipo de apólice ('1' ou '2')</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="observacoes" type="xsd:string" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Observações adicionais</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Detalhe de Solicitação -->
+      <xsd:complexType name="DetalheSolicitacao">
+        <xsd:sequence>
+          <xsd:element name="numeroOcorrencia" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Número de ocorrência (ocorhist)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="operacao" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Código de operação (sempre 1098)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="dataMovimento" type="xsd:date" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Data do movimento</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="horaOperacao" type="xsd:time" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Hora da operação</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorPrincipal" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor principal (moeda original)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorCorrecao" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor de correção (moeda original)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="favorecido" type="xsd:string" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Nome do favorecido</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorPrincipalBTNF" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor principal em BTNF</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorCorrecaoBTNF" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor de correção em BTNF</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="valorTotalBTNF" type="xsd:decimal" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Valor total em BTNF</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="situacaoContabil" type="xsd:string" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Situação contábil</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="situacao" type="xsd:string" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Situação geral</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="operador" type="xsd:string" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Código do operador (EZEUSRID)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Array de Strings -->
+      <xsd:complexType name="ArrayOfString">
+        <xsd:sequence>
+          <xsd:element name="string" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Erro de Solicitação (SOAP Fault) -->
+      <xsd:element name="SolicitacaoFault">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="codigoErro" type="xsd:string" minOccurs="1"/>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="1"/>
+            <xsd:element name="detalhes" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="timestamp" type="xsd:dateTime" minOccurs="1"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- Mensagens -->
+  <message name="autorizarPagamentoRequestMsg">
+    <part name="parameters" element="tns:autorizarPagamentoRequest"/>
+  </message>
+
+  <message name="autorizarPagamentoResponseMsg">
+    <part name="parameters" element="tns:autorizarPagamentoResponse"/>
+  </message>
+
+  <message name="consultarSolicitacaoRequestMsg">
+    <part name="parameters" element="tns:consultarSolicitacaoRequest"/>
+  </message>
+
+  <message name="consultarSolicitacaoResponseMsg">
+    <part name="parameters" element="tns:consultarSolicitacaoResponse"/>
+  </message>
+
+  <message name="cancelarSolicitacaoRequestMsg">
+    <part name="parameters" element="tns:cancelarSolicitacaoRequest"/>
+  </message>
+
+  <message name="cancelarSolicitacaoResponseMsg">
+    <part name="parameters" element="tns:cancelarSolicitacaoResponse"/>
+  </message>
+
+  <message name="SolicitacaoFaultMsg">
+    <part name="fault" element="tns:SolicitacaoFault"/>
+  </message>
+
+  <!-- Port Type -->
+  <portType name="SolicitacaoPortType">
+    <documentation>Interface do serviço de solicitações</documentation>
+
+    <operation name="autorizarPagamento">
+      <documentation>
+        Autoriza pagamento de indenização para um sinistro.
+
+        Validações:
+        - Tipo de pagamento: 1, 2, 3, 4 ou 5
+        - Favorecido: obrigatório se tpsegu != 0
+        - Valor não pode exceder saldo pendente
+        - Produtos consórcio: validação via CNOUA
+        - Contratos EFP: validação via SIPUA
+        - Contratos HB: validação via SIMDA
+        - Converte valores para BTNF usando taxas de TGEUNIMO
+        - Registra histórico com operação 1098
+        - Atualiza fases do sinistro
+      </documentation>
+      <input message="tns:autorizarPagamentoRequestMsg"/>
+      <output message="tns:autorizarPagamentoResponseMsg"/>
+      <fault name="SolicitacaoFault" message="tns:SolicitacaoFaultMsg"/>
+    </operation>
+
+    <operation name="consultarSolicitacao">
+      <documentation>
+        Consulta detalhes de uma solicitação de pagamento.
+      </documentation>
+      <input message="tns:consultarSolicitacaoRequestMsg"/>
+      <output message="tns:consultarSolicitacaoResponseMsg"/>
+      <fault name="SolicitacaoFault" message="tns:SolicitacaoFaultMsg"/>
+    </operation>
+
+    <operation name="cancelarSolicitacao">
+      <documentation>
+        Cancela uma solicitação de pagamento pendente.
+      </documentation>
+      <input message="tns:cancelarSolicitacaoRequestMsg"/>
+      <output message="tns:cancelarSolicitacaoResponseMsg"/>
+      <fault name="SolicitacaoFault" message="tns:SolicitacaoFaultMsg"/>
+    </operation>
+  </portType>
+
+  <!-- Binding SOAP 1.2 -->
+  <binding name="SolicitacaoSOAP12Binding" type="tns:SolicitacaoPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="autorizarPagamento">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/autorizarPagamento" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap12:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="consultarSolicitacao">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/consultarSolicitacao" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap12:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="cancelarSolicitacao">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/cancelarSolicitacao" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap12:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Binding SOAP 1.1 -->
+  <binding name="SolicitacaoSOAPBinding" type="tns:SolicitacaoPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="autorizarPagamento">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/autorizarPagamento" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="consultarSolicitacao">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/consultarSolicitacao" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="cancelarSolicitacao">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0007_Solicitacao/v1/cancelarSolicitacao" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="SolicitacaoFault">
+        <soap:fault name="SolicitacaoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Service -->
+  <service name="SolicitacaoService">
+    <documentation>
+      Serviço de Solicitação - Sistema SIWEA
+      Caixa Seguradora
+    </documentation>
+
+    <port name="SolicitacaoSOAP12Port" binding="tns:SolicitacaoSOAP12Binding">
+      <soap12:address location="https://api.caixaseguradora.com.br/soap/solicitacao"/>
+    </port>
+
+    <port name="SolicitacaoSOAPPort" binding="tns:SolicitacaoSOAPBinding">
+      <soap:address location="https://api.caixaseguradora.com.br/soap/solicitacao"/>
+    </port>
+  </service>
+
+</definitions>

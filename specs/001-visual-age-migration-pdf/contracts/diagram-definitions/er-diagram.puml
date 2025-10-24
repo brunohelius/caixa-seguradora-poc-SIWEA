@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+title Entity Relationship Diagram - Claims System
+
+entity "TMESTSIN" as claim {
+    * **numsin** : INTEGER <<PK>>
+    --
+    orgsin : INTEGER
+    rmosin : INTEGER
+    fonte : VARCHAR(3)
+    protsini : VARCHAR(14)
+    dac : VARCHAR(2)
+    valpri : DECIMAL(15,2)
+    valjur : DECIMAL(15,2)
+    valcor : DECIMAL(15,2)
+    dtsinistro : DATE
+    dtaviso : DATE
+    ocorhist : INTEGER
+    status : VARCHAR(1)
+}
+
+entity "THISTSIN" as history {
+    * **id** : INTEGER <<PK>>
+    --
+    * numsin : INTEGER <<FK>>
+    operacao : INTEGER
+    dtoperacao : DATETIME
+    valpri : DECIMAL(15,2)
+    valjur : DECIMAL(15,2)
+    valcor : DECIMAL(15,2)
+    tipopag : INTEGER
+    beneficiario : VARCHAR(100)
+    operador : VARCHAR(20)
+}
+
+entity "TAPOLICE" as policy {
+    * **numapo** : INTEGER <<PK>>
+    --
+    segurado : VARCHAR(100)
+    cpfcnpj : VARCHAR(14)
+    dtinicio : DATE
+    dtfim : DATE
+    valor : DECIMAL(15,2)
+    status : VARCHAR(1)
+}
+
+entity "SI_SINISTRO_FASE" as phase {
+    * **id** : INTEGER <<PK>>
+    --
+    * numsin : INTEGER <<FK>>
+    fase : VARCHAR(50)
+    dtabertura : DATETIME
+    dtfechamento : DATETIME
+    status : VARCHAR(1)
+}
+
+claim ||--o{ history : has
+claim }o--|| policy : refers_to
+claim ||--o{ phase : has_phases
+
+@enduml

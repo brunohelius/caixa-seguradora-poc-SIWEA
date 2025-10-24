@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- T135 [UI Polish] - Centralized Portuguese Error Messages -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Claim Errors -->
+  <data name="ClaimNotFoundProtocol" xml:space="preserve">
+    <value>DOCUMENTO {0} NAO CADASTRADO</value>
+    <comment>Message when claim is not found by protocol number</comment>
+  </data>
+  <data name="ClaimNotFoundNumber" xml:space="preserve">
+    <value>Sinistro {0}/{1}/{2} não encontrado</value>
+    <comment>Message when claim is not found by claim number</comment>
+  </data>
+  <data name="ClaimNotFoundLeader" xml:space="preserve">
+    <value>Sinistro líder {0}/{1} não encontrado</value>
+    <comment>Message when claim is not found by leader code</comment>
+  </data>
+  <data name="InvalidSearchCriteria" xml:space="preserve">
+    <value>Critérios de busca inválidos. Forneça protocolo, número do sinistro ou código do líder</value>
+    <comment>Message when search criteria are incomplete</comment>
+  </data>
+
+  <!-- Payment Errors -->
+  <data name="PaymentTypeInvalid" xml:space="preserve">
+    <value>Tipo de pagamento deve ser 1, 2, 3, 4 ou 5</value>
+    <comment>Message when payment type is not in valid range</comment>
+  </data>
+  <data name="BeneficiaryRequired" xml:space="preserve">
+    <value>Favorecido é obrigatório para este tipo de seguro</value>
+    <comment>Message when beneficiary is required but not provided</comment>
+  </data>
+  <data name="InsufficientBalance" xml:space="preserve">
+    <value>Valor total excede o saldo pendente do sinistro (R$ {0})</value>
+    <comment>Message when payment amount exceeds pending balance</comment>
+  </data>
+  <data name="ExternalValidationFailed" xml:space="preserve">
+    <value>Validação de produto consórcio falhou: {0}</value>
+    <comment>Message when external validation service (CNOUA/SIPUA/SIMDA) fails</comment>
+  </data>
+  <data name="CurrencyRateNotFound" xml:space="preserve">
+    <value>Taxa de conversão não encontrada para a data {0:dd/MM/yyyy}</value>
+    <comment>Message when currency conversion rate is not available</comment>
+  </data>
+  <data name="ConcurrencyConflict" xml:space="preserve">
+    <value>O sinistro foi modificado por outro usuário. Recarregue e tente novamente</value>
+    <comment>Message when optimistic concurrency conflict occurs</comment>
+  </data>
+
+  <!-- History Errors -->
+  <data name="HistoryNotFound" xml:space="preserve">
+    <value>Nenhum registro de histórico encontrado para este sinistro</value>
+    <comment>Message when no history records exist</comment>
+  </data>
+
+  <!-- Phase Errors -->
+  <data name="PhasesNotFound" xml:space="preserve">
+    <value>Nenhuma fase encontrada para o protocolo {0}</value>
+    <comment>Message when no phases exist for claim</comment>
+  </data>
+  <data name="PhaseUpdateFailed" xml:space="preserve">
+    <value>Falha ao atualizar fases do sinistro</value>
+    <comment>Message when phase update operation fails</comment>
+  </data>
+
+  <!-- Authorization Errors -->
+  <data name="Unauthorized" xml:space="preserve">
+    <value>Você não tem permissão para acessar este recurso</value>
+    <comment>Message when user lacks authorization</comment>
+  </data>
+  <data name="TokenExpired" xml:space="preserve">
+    <value>Sua sessão expirou. Faça login novamente</value>
+    <comment>Message when JWT token has expired</comment>
+  </data>
+
+  <!-- Generic Errors -->
+  <data name="InternalError" xml:space="preserve">
+    <value>Erro interno do servidor. Tente novamente mais tarde</value>
+    <comment>Generic internal error message</comment>
+  </data>
+  <data name="NetworkError" xml:space="preserve">
+    <value>Erro de conexão. Verifique sua internet</value>
+    <comment>Message when network request fails</comment>
+  </data>
+  <data name="TimeoutError" xml:space="preserve">
+    <value>A requisição demorou muito. Tente novamente</value>
+    <comment>Message when request times out</comment>
+  </data>
+</root>
