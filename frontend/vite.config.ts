@@ -17,6 +17,11 @@ export default defineConfig({
     },
     port: 5174,
   },
+  preview: {
+    port: parseInt(process.env.PORT || '5174'),
+    host: '0.0.0.0',
+    strictPort: true,
+  },
   css: {
     devSourcemap: true,
   },
