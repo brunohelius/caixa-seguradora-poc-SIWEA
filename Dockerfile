@@ -16,8 +16,12 @@ COPY frontend/ ./
 # Build the application
 RUN npm run build
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Expose port (Railway will set PORT env var)
 EXPOSE 5174
 
-# Start the preview server (PORT env var passed via CLI)
-CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT:-5174}"]
+# Start the preview server with debug logging
+CMD ["/app/start.sh"]
