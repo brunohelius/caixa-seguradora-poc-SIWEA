@@ -19,5 +19,5 @@ RUN npm run build
 # Expose port (Railway will set PORT env var)
 EXPOSE 5174
 
-# Start the preview server (reads PORT from env via vite.config.ts)
-CMD ["npm", "run", "preview"]
+# Start the preview server (PORT env var passed via CLI)
+CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT:-5174}"]

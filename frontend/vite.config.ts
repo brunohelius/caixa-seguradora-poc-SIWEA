@@ -18,9 +18,9 @@ export default defineConfig({
     port: 5174,
   },
   preview: {
-    port: parseInt(process.env.PORT || '5174'),
+    port: process.env.PORT ? parseInt(process.env.PORT) : 5174,
     host: '0.0.0.0',
-    strictPort: true,
+    strictPort: false, // Allow fallback if port is busy
   },
   css: {
     devSourcemap: true,
