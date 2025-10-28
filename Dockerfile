@@ -16,8 +16,8 @@ COPY frontend/ ./
 # Build the application
 RUN npm run build
 
-# Expose port
-EXPOSE ${PORT:-5174}
+# Expose port (Railway will set PORT env var)
+EXPOSE 5174
 
-# Start the preview server with PORT variable
-CMD sh -c "npm run preview -- --host 0.0.0.0 --port ${PORT:-5174}"
+# Start the preview server (reads PORT from env via vite.config.ts)
+CMD ["npm", "run", "preview"]
