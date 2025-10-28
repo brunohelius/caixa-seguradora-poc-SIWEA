@@ -1,0 +1,24 @@
+{
+  "name": "caixa-seguradora-poc-siwea",
+  "version": "1.0.0",
+  "description": "VisualAge SIWEA Migration to .NET 9.0 + React 19",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install": "cd frontend && npm install --legacy-peer-deps",
+    "build": "cd frontend && npm run build",
+    "dev": "cd frontend && npm run dev",
+    "preview": "cd frontend && npm run preview",
+    "start": "cd frontend && npm run preview -- --host 0.0.0.0 --port ${PORT:-5174}"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brunohelius/caixa-seguradora-poc-SIWEA.git"
+  },
+  "author": "Bruno Souza",
+  "license": "MIT"
+}
