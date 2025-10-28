@@ -140,7 +140,8 @@ public class ClaimService : IClaimService
     }
 
     /// <summary>
-    /// T078 [US3] - Get paginated claim history
+    /// T078 [US3] - Get paginated claim history with optimized repository queries
+    /// T085 [US3] - Performance optimization using ClaimHistoryRepository
     /// </summary>
     public async Task<ClaimHistoryResponse> GetClaimHistoryAsync(
         int tipseg, int orgsin, int rmosin, int numsin, int page = 1, int pageSize = 20)
@@ -165,24 +166,14 @@ public class ClaimService : IClaimService
                 throw ClaimNotFoundException.ForClaimNumber(orgsin, rmosin, numsin);
             }
 
-            // Get history from repository
-            var allHistory = await _unitOfWork.ClaimHistories.FindAsync(h =>
-                h.Tipseg == tipseg &&
-                h.Orgsin == orgsin &&
-                h.Rmosin == rmosin &&
-                h.Numsin == numsin);
+            // T085: Use optimized repository method with single query and proper indexing
+            // Prevents N+1 queries and leverages IX_THISTSIN_Claim_Occurrence index
+            var (totalRecords, history) = await _unitOfWork.ClaimHistories.GetPaginatedHistoryAsync(
+                tipseg, orgsin, rmosin, numsin, page, pageSize);
 
-            // Sort and paginate
-            var orderedHistory = allHistory
-                .OrderByDescending(h => h.Ocorhist)
-                .ToList();
-
-            var totalRecords = orderedHistory.Count;
-            var history = orderedHistory
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-            var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+            var totalPages = totalRecords > 0
+                ? (int)Math.Ceiling((double)totalRecords / pageSize)
+                : 0;
 
             // Map to DTOs
             var historyDtos = _mapper.Map<List<HistoryRecordDto>>(history);
@@ -198,8 +189,8 @@ public class ClaimService : IClaimService
             };
 
             _logger.LogInformation(
-                "Retrieved {Count} history records (Page {Page} of {TotalPages})",
-                historyDtos.Count, page, totalPages);
+                "Retrieved {Count} history records (Page {Page} of {TotalPages}, Total: {Total})",
+                historyDtos.Count, page, totalPages, totalRecords);
 
             return response;
         }

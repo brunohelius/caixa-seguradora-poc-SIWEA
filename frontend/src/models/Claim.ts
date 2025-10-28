@@ -1,7 +1,16 @@
 /**
  * Claim TypeScript interface matching ClaimDetailDto
  * T042 [US1] - Frontend model for claim details
+ * Updated: Added ClaimKey interface for history page
  */
+
+// ClaimKey interface for history component
+export interface ClaimKey {
+  tipseg: number;
+  orgsin: number;
+  rmosin: number;
+  numsin: number;
+}
 
 export interface Claim {
   // Primary Key
@@ -55,6 +64,8 @@ export interface ClaimSearchCriteria {
   fonte?: number;
   protsini?: number;
   dac?: number;
+  protocol?: string;
+  searchType?: string;
 
   // Claim number search (mutual exclusive group 2)
   orgsin?: number;
@@ -78,3 +89,4 @@ export interface ClaimSearchResponse {
   mensagem: string;
   claim: Claim;
 }
+ 

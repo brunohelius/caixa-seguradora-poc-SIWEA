@@ -1,246 +1,343 @@
 using System.Diagnostics;
+using System.Net;
+using System.Text;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using Polly.Timeout;
+using CaixaSeguradora.Core.DTOs;
 using CaixaSeguradora.Core.Interfaces;
 
 namespace CaixaSeguradora.Infrastructure.ExternalServices;
 
 /// <summary>
-/// SIMDA (Sistema Integrado de Monitoramento e Dados de Apólices) validation client
+/// SIMDA (HB Contract Validation) SOAP 1.2 service client with Polly resilience policies
+/// Handles validation for claims with NUM_CONTRATO = 0 or not found (HB contracts)
+/// Implements retry (3 attempts, exponential backoff), circuit breaker (5 failures, 30s break), and timeout (10s)
 /// </summary>
-public class SIMDAValidationClient : IExternalValidationService
+public class SimdaValidationClient : ISimdaValidationClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<SIMDAValidationClient> _logger;
+    private readonly ILogger<SimdaValidationClient> _logger;
+    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+    private readonly AsyncCircuitBreakerPolicy<HttpResponseMessage> _circuitBreakerPolicy;
+    private readonly AsyncTimeoutPolicy _timeoutPolicy;
+
+    // T023: EZERT8 error code mapping for SIMDA
+    private static readonly Dictionary<string, (string ErrorCode, string Message)> EzertErrorMap = new()
+    {
+        ["00000000"] = ("SUCCESS", "Validação aprovada"),
+        ["EZERT8001"] = ("CONS-001", "Contrato de consórcio inválido"),
+        ["EZERT8002"] = ("CONS-002", "Contrato cancelado"),
+        ["EZERT8003"] = ("CONS-003", "Grupo encerrado"),
+        ["EZERT8004"] = ("CONS-004", "Cota não contemplada"),
+        ["EZERT8005"] = ("CONS-005", "Beneficiário não autorizado")
+    };
+
+    private const string SoapNamespace = "http://caixaseguradora.com.br/simda";
+    private const string SoapAction = "http://caixaseguradora.com.br/simda/ValidateHBContract";
 
     public string SystemName => "SIMDA";
 
-    public SIMDAValidationClient(
+    public SimdaValidationClient(
         IHttpClientFactory httpClientFactory,
-        ILogger<SIMDAValidationClient> logger)
+        ILogger<SimdaValidationClient> logger)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+
+        // T020: Polly retry policy - 3 retries with exponential backoff (2s, 4s, 8s)
+        _retryPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r =>
+                r.StatusCode == HttpStatusCode.RequestTimeout ||
+                r.StatusCode == HttpStatusCode.TooManyRequests ||
+                r.StatusCode >= HttpStatusCode.InternalServerError)
+            .Or<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, timespan, retryCount, context) =>
+                {
+                    _logger.LogWarning(
+                        "SIMDA retry {RetryCount}/3 after {DelayMs}ms. Reason: {Reason}",
+                        retryCount,
+                        timespan.TotalMilliseconds,
+                        outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString());
+                });
+
+        // T020: Polly circuit breaker - open after 5 consecutive failures for 30 seconds
+        _circuitBreakerPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .Or<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(30),
+                onBreak: (outcome, breakDelay) =>
+                {
+                    _logger.LogError(
+                        "SIMDA circuit breaker opened for {BreakSeconds}s after 5 failures. Reason: {Reason}",
+                        breakDelay.TotalSeconds,
+                        outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString() ?? "Unknown");
+                },
+                onReset: () =>
+                {
+                    _logger.LogInformation("SIMDA circuit breaker reset - service recovered");
+                },
+                onHalfOpen: () =>
+                {
+                    _logger.LogInformation("SIMDA circuit breaker half-open - testing service");
+                });
+
+        // T020: Polly timeout policy - 10 seconds per request
+        _timeoutPolicy = Policy.TimeoutAsync(
+            seconds: 10,
+            onTimeoutAsync: (context, timespan, task) =>
+            {
+                _logger.LogWarning("SIMDA request timeout after {TimeoutSeconds}s", timespan.TotalSeconds);
+                return Task.CompletedTask;
+            });
     }
 
     /// <inheritdoc/>
-    public async Task<ExternalValidationResponse> ValidatePaymentAsync(
+    public async Task<ExternalValidationResponse> ValidateAsync(
         ExternalValidationRequest request,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        var requestTimestamp = DateTime.UtcNow;
+
+        // T024: Structured logging - request payload
+        _logger.LogInformation(
+            "SIMDA validation started: Contract={Contract}, Claim={Claim}, Amount={Amount}",
+            request.NumContrato, $"{request.Orgsin:D2}/{request.Rmosin:D2}/{request.Numsin:D6}", request.ValorPrincipal);
 
         try
         {
-            _logger.LogInformation("SIMDA validation started for ClaimId: {ClaimId}, Product: {Product}",
-                request.ClaimId, request.ProductCode);
-
-            if (!IsProductSupported(request.ProductCode))
+            // Validate contract routing
+            if (!SupportsContract(request.NumContrato))
             {
-                stopwatch.Stop();
-                return new ExternalValidationResponse
-                {
-                    Status = "REJECTED",
-                    Message = $"Product code {request.ProductCode} not supported by SIMDA",
-                    ValidatedAt = DateTime.UtcNow,
-                    ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                    ValidationCode = "SIMDA_UNSUPPORTED_PRODUCT"
-                };
+                var errorResponse = CreateErrorResponse(
+                    "INVALID_CONTRACT",
+                    $"Contract {request.NumContrato} not suitable for SIMDA (expected NUM_CONTRATO = 0 or null)",
+                    requestTimestamp,
+                    stopwatch.ElapsedMilliseconds);
+
+                _logger.LogWarning("SIMDA validation rejected: invalid contract {Contract}", request.NumContrato);
+                return errorResponse;
             }
 
-            var validationResult = await PerformSIMDAValidationAsync(request, cancellationToken);
+            // Execute with Polly policies: Timeout → Retry → Circuit Breaker
+            var httpResponse = await _timeoutPolicy.ExecuteAsync(async (ct) =>
+                await _retryPolicy.ExecuteAsync(async () =>
+                    await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                        await CallSimdaSoapServiceAsync(request, ct))), cancellationToken);
 
             stopwatch.Stop();
 
-            _logger.LogInformation("SIMDA validation completed: {Status} in {Ms}ms",
-                validationResult.Status, stopwatch.ElapsedMilliseconds);
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "SIMDA SOAP error: {StatusCode} - {ReasonPhrase}",
+                    httpResponse.StatusCode, httpResponse.ReasonPhrase);
 
-            validationResult.ResponseTimeMs = stopwatch.ElapsedMilliseconds;
-            return validationResult;
+                return CreateErrorResponse(
+                    "SOAP_ERROR",
+                    $"SIMDA service returned {httpResponse.StatusCode}: {httpResponse.ReasonPhrase}",
+                    requestTimestamp,
+                    stopwatch.ElapsedMilliseconds);
+            }
+
+            // Parse SOAP response
+            var responseContent = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            var ezert8Code = ParseSoapResponse(responseContent);
+
+            // T024: Structured logging - response with EZERT8 code and elapsed time
+            _logger.LogInformation(
+                "SIMDA validation completed: EZERT8={Ezert8}, ElapsedMs={ElapsedMs}, Success={Success}",
+                ezert8Code, stopwatch.ElapsedMilliseconds, ezert8Code == "00000000");
+
+            // Map EZERT8 to response
+            return MapSimdaResponse(ezert8Code, requestTimestamp, stopwatch.ElapsedMilliseconds);
+        }
+        catch (BrokenCircuitException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "SIMDA circuit breaker open - service unavailable");
+
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (circuit breaker open)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (TimeoutRejectedException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "SIMDA request timeout after 10 seconds");
+
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (timeout)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "SIMDA validation failed for ClaimId: {ClaimId}", request.ClaimId);
+            _logger.LogError(ex, "SIMDA validation exception: {Message}", ex.Message);
 
-            return new ExternalValidationResponse
-            {
-                Status = "ERROR",
-                Message = "SIMDA system error",
-                ValidatedAt = DateTime.UtcNow,
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                ErrorDetails = ex.Message,
-                ShouldRetry = true
-            };
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (exception)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
         }
     }
 
     /// <inheritdoc/>
-    public async Task<SystemHealthStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
-            await Task.Delay(60, cancellationToken);
+            var httpClient = _httpClientFactory.CreateClient("SIMDA");
 
-            stopwatch.Stop();
+            // SOAP services typically use ?wsdl for health check
+            var response = await httpClient.GetAsync("?wsdl", cancellationToken);
+            var isHealthy = response.IsSuccessStatusCode;
 
-            return new SystemHealthStatus
-            {
-                SystemName = SystemName,
-                Status = "HEALTHY",
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                LastCheckedAt = DateTime.UtcNow,
-                Metrics = new Dictionary<string, object>
-                {
-                    ["uptime_seconds"] = 259200,
-                    ["request_count_24h"] = 2876,
-                    ["avg_response_time_ms"] = 85,
-                    ["success_rate"] = 0.995,
-                    ["database_connections"] = 45
-                }
-            };
+            _logger.LogInformation("SIMDA health check: {Status}", isHealthy ? "HEALTHY" : "UNHEALTHY");
+            return isHealthy;
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            _logger.LogError(ex, "SIMDA health check failed");
-
-            return new SystemHealthStatus
-            {
-                SystemName = SystemName,
-                Status = "UNHEALTHY",
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                LastCheckedAt = DateTime.UtcNow,
-                ErrorMessage = ex.Message
-            };
+            _logger.LogError(ex, "SIMDA health check failed: {Message}", ex.Message);
+            return false;
         }
     }
 
     /// <inheritdoc/>
-    public Task<SystemConfiguration> GetConfigurationAsync(CancellationToken cancellationToken = default)
+    public bool SupportsContract(int? numContrato)
     {
-        var config = new SystemConfiguration
-        {
-            SystemName = SystemName,
-            Version = "4.2.1",
-            SupportedProducts = new List<string> { "SIMDA_POLICY", "SIMDA_CLAIM", "SIMDA_ENDORSEMENT", "SIMDA_RENEWAL" },
-            TimeoutSeconds = 20,
-            RetryConfig = new RetryConfiguration
-            {
-                MaxRetries = 3,
-                InitialDelayMs = 750,
-                BackoffMultiplier = 2.5,
-                MaxDelayMs = 8000
-            },
-            Properties = new Dictionary<string, object>
-            {
-                ["max_payment_amount"] = 2000000,
-                ["requires_authorization"] = true,
-                ["validation_rules"] = "SIMDA_COMPREHENSIVE_V4",
-                ["supports_bulk_validation"] = true,
-                ["policy_verification_enabled"] = true
-            }
-        };
-
-        return Task.FromResult(config);
+        // T022: SIMDA handles HB contracts where NUM_CONTRATO = 0 or null
+        return !numContrato.HasValue || numContrato.Value == 0;
     }
 
-    private bool IsProductSupported(string productCode)
-    {
-        var supportedPrefixes = new[] { "SIMDA", "SIM", "POLICY", "CLAIM", "ENDORSEMENT", "RENEWAL" };
-        return supportedPrefixes.Any(prefix =>
-            productCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private async Task<ExternalValidationResponse> PerformSIMDAValidationAsync(
+    /// <summary>
+    /// Calls SIMDA SOAP 1.2 service with HTTP POST
+    /// </summary>
+    private async Task<HttpResponseMessage> CallSimdaSoapServiceAsync(
         ExternalValidationRequest request,
         CancellationToken cancellationToken)
     {
-        await Task.Delay(100, cancellationToken);
+        var httpClient = _httpClientFactory.CreateClient("SIMDA");
 
-        var validationErrors = new List<string>();
-        var warnings = new List<string>();
+        // Build SOAP envelope
+        var soapEnvelope = BuildSoapEnvelope(request);
+        var content = new StringContent(soapEnvelope, Encoding.UTF8, "application/soap+xml");
+        content.Headers.Add("SOAPAction", SoapAction);
 
-        // SIMDA-specific comprehensive validation
-        if (request.Amount > 2000000)
+        // T024: Log SOAP request envelope
+        _logger.LogDebug("SIMDA SOAP request: {Envelope}", soapEnvelope);
+
+        return await httpClient.PostAsync("", content, cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds SOAP 1.2 envelope for SIMDA ValidateHBContract operation
+    /// </summary>
+    private string BuildSoapEnvelope(ExternalValidationRequest request)
+    {
+        var envelope = new XDocument(
+            new XDeclaration("1.0", "utf-8", null),
+            new XElement(XNamespace.Get("http://schemas.xmlsoap.org/soap/envelope/") + "Envelope",
+                new XAttribute(XNamespace.Xmlns + "soapenv", "http://schemas.xmlsoap.org/soap/envelope/"),
+                new XAttribute(XNamespace.Xmlns + "sim", SoapNamespace),
+                new XElement(XNamespace.Get("http://schemas.xmlsoap.org/soap/envelope/") + "Header"),
+                new XElement(XNamespace.Get("http://schemas.xmlsoap.org/soap/envelope/") + "Body",
+                    new XElement(XNamespace.Get(SoapNamespace) + "ValidateHBContractRequest",
+                        new XElement(XNamespace.Get(SoapNamespace) + "ContractNumber", request.NumContrato ?? 0),
+                        new XElement(XNamespace.Get(SoapNamespace) + "ClaimNumber",
+                            $"{request.Orgsin:D2}/{request.Rmosin:D2}/{request.Numsin:D6}"),
+                        new XElement(XNamespace.Get(SoapNamespace) + "PolicyType", request.TipoPagamento),
+                        new XElement(XNamespace.Get(SoapNamespace) + "PrincipalAmount", request.ValorPrincipal)
+                    )
+                )
+            )
+        );
+
+        return envelope.ToString();
+    }
+
+    /// <summary>
+    /// Parses SOAP response envelope to extract EZERT8 code
+    /// </summary>
+    private string ParseSoapResponse(string soapResponse)
+    {
+        try
         {
-            validationErrors.Add("Payment amount exceeds SIMDA maximum limit (2,000,000)");
-        }
+            var doc = XDocument.Parse(soapResponse);
+            var ns = XNamespace.Get(SoapNamespace);
 
-        if (request.Amount > 1000000)
-        {
-            warnings.Add("High-value payment requires additional approval levels");
-        }
-
-        // Policy validation simulation
-        var policyExists = await ValidatePolicyExistsAsync(request.ClaimId, cancellationToken);
-        if (!policyExists)
-        {
-            validationErrors.Add("No active policy found for claim");
-        }
-
-        // Coverage validation
-        var coverageValid = await ValidateCoverageAsync(request.ClaimId, request.Amount, cancellationToken);
-        if (!coverageValid)
-        {
-            validationErrors.Add("Payment amount exceeds policy coverage limits");
-        }
-
-        // Multi-currency support check
-        if (request.CurrencyCode != "BRL" && request.CurrencyCode != "USD")
-        {
-            warnings.Add($"Currency {request.CurrencyCode} requires additional verification");
-        }
-
-        if (validationErrors.Any())
-        {
-            return new ExternalValidationResponse
+            var ezert8Element = doc.Descendants(ns + "Ezert8").FirstOrDefault();
+            if (ezert8Element != null)
             {
-                Status = "REJECTED",
-                Message = string.Join("; ", validationErrors),
-                ValidatedAt = DateTime.UtcNow,
-                ValidationCode = "SIMDA_VALIDATION_FAILED",
-                AdditionalData = new Dictionary<string, object>
-                {
-                    ["validation_errors"] = validationErrors,
-                    ["warnings"] = warnings,
-                    ["requires_manual_review"] = true,
-                    ["escalation_level"] = validationErrors.Count > 1 ? "HIGH" : "MEDIUM"
-                }
-            };
+                return ezert8Element.Value;
+            }
+
+            _logger.LogWarning("EZERT8 element not found in SIMDA SOAP response");
+            return "PARSE_ERROR";
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse SIMDA SOAP response: {Message}", ex.Message);
+            return "PARSE_ERROR";
+        }
+    }
+
+    /// <summary>
+    /// Maps SIMDA EZERT8 code to ExternalValidationResponse DTO
+    /// </summary>
+    private ExternalValidationResponse MapSimdaResponse(
+        string ezert8Code,
+        DateTime requestTimestamp,
+        long elapsedMs)
+    {
+        var (errorCode, message) = EzertErrorMap.TryGetValue(ezert8Code, out var mapping)
+            ? mapping
+            : ("SYS-005", "Erro desconhecido de validação SIMDA");
 
         return new ExternalValidationResponse
         {
-            Status = "APPROVED",
-            Message = "SIMDA validation passed successfully",
-            ValidatedAt = DateTime.UtcNow,
-            ValidationCode = "SIMDA_APPROVED",
-            AdditionalData = new Dictionary<string, object>
-            {
-                ["approval_reference"] = $"SIMDA-{DateTime.UtcNow:yyyyMMddHHmmss}-{request.ClaimId}",
-                ["validation_level"] = "COMPREHENSIVE",
-                ["policy_verified"] = true,
-                ["coverage_verified"] = true,
-                ["risk_score"] = 0.08,
-                ["fraud_check"] = "PASSED",
-                ["warnings"] = warnings
-            }
+            Ezert8 = ezert8Code,
+            ErrorMessage = ezert8Code == "00000000" ? null : message,
+            ValidationService = SystemName,
+            RequestTimestamp = requestTimestamp,
+            ResponseTimestamp = DateTime.UtcNow,
+            ElapsedMilliseconds = elapsedMs
         };
     }
 
-    private async Task<bool> ValidatePolicyExistsAsync(int claimId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Creates error response for validation failures
+    /// </summary>
+    private ExternalValidationResponse CreateErrorResponse(
+        string ezert8,
+        string errorMessage,
+        DateTime requestTimestamp,
+        long elapsedMs)
     {
-        await Task.Delay(20, cancellationToken);
-        // Mock: assume policy exists for all claims
-        return true;
-    }
-
-    private async Task<bool> ValidateCoverageAsync(int claimId, decimal amount, CancellationToken cancellationToken)
-    {
-        await Task.Delay(30, cancellationToken);
-        // Mock: assume coverage is valid if amount < 1.5M
-        return amount <= 1500000;
+        return new ExternalValidationResponse
+        {
+            Ezert8 = ezert8,
+            ErrorMessage = errorMessage,
+            ValidationService = SystemName,
+            RequestTimestamp = requestTimestamp,
+            ResponseTimestamp = DateTime.UtcNow,
+            ElapsedMilliseconds = elapsedMs
+        };
     }
 }

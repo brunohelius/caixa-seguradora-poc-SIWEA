@@ -12,12 +12,12 @@ namespace CaixaSeguradora.Api.Tests.Integration;
 /// T082: Integration tests for Claim History functionality
 /// Tests retrieving payment history with pagination, ordering, and formatting.
 /// </summary>
-public class ClaimHistoryIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class ClaimHistoryIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public ClaimHistoryIntegrationTests(WebApplicationFactory<Program> factory)
+    public ClaimHistoryIntegrationTests(CustomWebApplicationFactory<Program> factory)
     {
         _factory = factory;
         _client = factory.CreateClient();

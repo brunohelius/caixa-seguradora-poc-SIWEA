@@ -240,6 +240,25 @@ public class ClaimsDbContext : DbContext
     }
 
     /// <summary>
+    /// Begins a new database transaction with specified isolation level
+    /// </summary>
+    /// <param name="isolationLevel">Transaction isolation level</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The database transaction instance</returns>
+    public async Task<IDbContextTransaction> BeginTransactionAsync(
+        System.Data.IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default)
+    {
+        if (_currentTransaction != null)
+        {
+            return _currentTransaction;
+        }
+
+        _currentTransaction = await Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+        return _currentTransaction;
+    }
+
+    /// <summary>
     /// Commits the current transaction
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

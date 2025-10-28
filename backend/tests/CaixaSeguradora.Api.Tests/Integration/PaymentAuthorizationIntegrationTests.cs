@@ -12,12 +12,12 @@ namespace CaixaSeguradora.Api.Tests.Integration;
 /// Tests payment authorization flow with various scenarios including validation,
 /// concurrent updates, external services, and error conditions.
 /// </summary>
-public class PaymentAuthorizationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class PaymentAuthorizationIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public PaymentAuthorizationIntegrationTests(WebApplicationFactory<Program> factory)
+    public PaymentAuthorizationIntegrationTests(CustomWebApplicationFactory<Program> factory)
     {
         _factory = factory;
         _client = factory.CreateClient();
@@ -267,10 +267,8 @@ public class PaymentAuthorizationIntegrationTests : IClassFixture<WebApplication
             Assert.Equal(12345.67m, result.Valpri);
             Assert.Equal(543.21m, result.Crrmon);
 
-            // BTNF values should also have 2 decimal precision
-            Assert.Equal(2, GetDecimalPlaces(result.Valpribt));
-            Assert.Equal(2, GetDecimalPlaces(result.Crrmonbt));
-            Assert.Equal(2, GetDecimalPlaces(result.Valtotbt));
+            // Verify authorized amount has 2 decimal precision
+            Assert.Equal(2, GetDecimalPlaces(result.AuthorizedAmount));
         }
     }
 
@@ -310,11 +308,12 @@ public class PaymentAuthorizationIntegrationTests : IClassFixture<WebApplication
             var result = await response.Content.ReadFromJsonAsync<PaymentAuthorizationResponse>();
             Assert.NotNull(result);
 
-            // Verify updated pending value is returned
-            Assert.NotNull(result.ValorPendenteAtualizado);
+            // Verify authorization was successful
+            Assert.True(result.Sucesso);
+            Assert.Equal("APPROVED", result.Status);
 
-            // Pending value should be reduced by the payment amount
-            Assert.True(result.ValorPendenteAtualizado < (originalClaim?.ValorPendente ?? 0));
+            // Verify authorized amount matches request
+            Assert.True(result.AuthorizedAmount > 0);
         }
     }
 

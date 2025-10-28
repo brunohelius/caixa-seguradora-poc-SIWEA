@@ -1,300 +1,321 @@
 using System.Diagnostics;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using Polly.Timeout;
+using CaixaSeguradora.Core.DTOs;
 using CaixaSeguradora.Core.Interfaces;
 
 namespace CaixaSeguradora.Infrastructure.ExternalServices;
 
 /// <summary>
-/// CNOUA (Consórcio Nacional de Ouvidorias) validation client
+/// CNOUA (Consortium Product Validation) REST API client with Polly resilience policies
+/// Handles validation for consortium product codes: 6814, 7701, 7709
+/// Implements retry (3 attempts, exponential backoff), circuit breaker (5 failures, 30s break), and timeout (10s)
 /// </summary>
-public class CNOUAValidationClient : IExternalValidationService
+public class CnouaValidationClient : ICnouaValidationClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<CNOUAValidationClient> _logger;
+    private readonly ILogger<CnouaValidationClient> _logger;
+    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+    private readonly AsyncCircuitBreakerPolicy<HttpResponseMessage> _circuitBreakerPolicy;
+    private readonly AsyncTimeoutPolicy _timeoutPolicy;
 
-    // T089: EZERT8 error code mapping dictionary
-    private static readonly Dictionary<string, string> EzertErrorMessages = new()
+    // T023: EZERT8 error code mapping to Portuguese error messages (CONS-001 through CONS-005)
+    private static readonly Dictionary<string, (string ErrorCode, string Message)> EzertErrorMap = new()
     {
-        ["EZERT8001"] = "Contrato de consórcio inválido",
-        ["EZERT8002"] = "Contrato cancelado",
-        ["EZERT8003"] = "Grupo encerrado",
-        ["EZERT8004"] = "Cota suspensa por inadimplência",
-        ["EZERT8005"] = "Participante não contemplado",
-        ["EZERT8006"] = "Documentação pendente",
-        ["EZERT8007"] = "Valor excede limite permitido",
-        ["EZERT8008"] = "Prazo de carência não cumprido",
-        ["EZERT8009"] = "Beneficiário não autorizado",
-        ["EZERT8010"] = "Duplicidade de solicitação",
-        ["00000000"] = "Validação aprovada" // Success code
+        ["00000000"] = ("SUCCESS", "Validação aprovada"),
+        ["EZERT8001"] = ("CONS-001", "Contrato de consórcio inválido"),
+        ["EZERT8002"] = ("CONS-002", "Contrato cancelado"),
+        ["EZERT8003"] = ("CONS-003", "Grupo encerrado"),
+        ["EZERT8004"] = ("CONS-004", "Cota não contemplada"),
+        ["EZERT8005"] = ("CONS-005", "Beneficiário não autorizado")
     };
 
     public string SystemName => "CNOUA";
 
-    public CNOUAValidationClient(
+    public CnouaValidationClient(
         IHttpClientFactory httpClientFactory,
-        ILogger<CNOUAValidationClient> logger)
+        ILogger<CnouaValidationClient> logger)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+
+        // T018: Polly retry policy - 3 retries with exponential backoff (2s, 4s, 8s)
+        _retryPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r =>
+                r.StatusCode == HttpStatusCode.RequestTimeout ||
+                r.StatusCode == HttpStatusCode.TooManyRequests ||
+                r.StatusCode >= HttpStatusCode.InternalServerError)
+            .Or<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, timespan, retryCount, context) =>
+                {
+                    _logger.LogWarning(
+                        "CNOUA retry {RetryCount}/3 after {DelayMs}ms. Reason: {Reason}",
+                        retryCount,
+                        timespan.TotalMilliseconds,
+                        outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString());
+                });
+
+        // T018: Polly circuit breaker - open after 5 consecutive failures for 30 seconds
+        _circuitBreakerPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .Or<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(30),
+                onBreak: (outcome, breakDelay) =>
+                {
+                    _logger.LogError(
+                        "CNOUA circuit breaker opened for {BreakSeconds}s after 5 failures. Reason: {Reason}",
+                        breakDelay.TotalSeconds,
+                        outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString() ?? "Unknown");
+                },
+                onReset: () =>
+                {
+                    _logger.LogInformation("CNOUA circuit breaker reset - service recovered");
+                },
+                onHalfOpen: () =>
+                {
+                    _logger.LogInformation("CNOUA circuit breaker half-open - testing service");
+                });
+
+        // T018: Polly timeout policy - 10 seconds per request
+        _timeoutPolicy = Policy.TimeoutAsync(
+            seconds: 10,
+            onTimeoutAsync: (context, timespan, task) =>
+            {
+                _logger.LogWarning("CNOUA request timeout after {TimeoutSeconds}s", timespan.TotalSeconds);
+                return Task.CompletedTask;
+            });
     }
 
     /// <inheritdoc/>
-    public async Task<ExternalValidationResponse> ValidatePaymentAsync(
+    public async Task<ExternalValidationResponse> ValidateAsync(
         ExternalValidationRequest request,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        var requestTimestamp = DateTime.UtcNow;
+
+        // T024: Structured logging - request payload
+        _logger.LogInformation(
+            "CNOUA validation started: Fonte={Fonte}, Protocol={Protocol}, DAC={Dac}, Product={Product}, Amount={Amount}",
+            request.Fonte, request.Protsini, request.Dac, request.CodProdu, request.ValorPrincipal);
 
         try
         {
-            _logger.LogInformation("CNOUA validation started for ClaimId: {ClaimId}, Product: {Product}",
-                request.ClaimId, request.ProductCode);
-
-            // Validate product code routing
-            if (!IsProductSupported(request.ProductCode))
+            // Validate product routing
+            if (!SupportsProduct(request.CodProdu))
             {
-                stopwatch.Stop();
-                return new ExternalValidationResponse
-                {
-                    Status = "REJECTED",
-                    Message = $"Product code {request.ProductCode} not supported by CNOUA",
-                    ValidatedAt = DateTime.UtcNow,
-                    ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                    ValidationCode = "CNOUA_UNSUPPORTED_PRODUCT"
-                };
+                var errorResponse = CreateErrorResponse(
+                    "UNSUPPORTED_PRODUCT",
+                    $"Product code {request.CodProdu} not supported by CNOUA (expected 6814, 7701, or 7709)",
+                    requestTimestamp,
+                    stopwatch.ElapsedMilliseconds);
+
+                _logger.LogWarning("CNOUA validation rejected: unsupported product {Product}", request.CodProdu);
+                return errorResponse;
             }
 
-            // Simulate CNOUA validation logic
-            var validationResult = await PerformCNOUAValidationAsync(request, cancellationToken);
+            // Execute with Polly policies: Timeout → Retry → Circuit Breaker
+            var httpResponse = await _timeoutPolicy.ExecuteAsync(async (ct) =>
+                await _retryPolicy.ExecuteAsync(async () =>
+                    await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                        await CallCnouaServiceAsync(request, ct))), cancellationToken);
 
             stopwatch.Stop();
 
-            _logger.LogInformation("CNOUA validation completed: {Status} in {Ms}ms",
-                validationResult.Status, stopwatch.ElapsedMilliseconds);
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "CNOUA HTTP error: {StatusCode} - {ReasonPhrase}",
+                    httpResponse.StatusCode, httpResponse.ReasonPhrase);
 
-            validationResult.ResponseTimeMs = stopwatch.ElapsedMilliseconds;
-            return validationResult;
+                return CreateErrorResponse(
+                    "HTTP_ERROR",
+                    $"CNOUA service returned {httpResponse.StatusCode}: {httpResponse.ReasonPhrase}",
+                    requestTimestamp,
+                    stopwatch.ElapsedMilliseconds);
+            }
+
+            // Parse response
+            var responseContent = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var cnouaResponse = JsonSerializer.Deserialize<CnouaApiResponse>(responseContent, jsonOptions);
+
+            if (cnouaResponse == null)
+            {
+                _logger.LogError("CNOUA response deserialization failed: {Content}", responseContent);
+                return CreateErrorResponse(
+                    "PARSE_ERROR",
+                    "Failed to parse CNOUA response",
+                    requestTimestamp,
+                    stopwatch.ElapsedMilliseconds);
+            }
+
+            // T024: Structured logging - response with EZERT8 code and elapsed time
+            _logger.LogInformation(
+                "CNOUA validation completed: EZERT8={Ezert8}, ElapsedMs={ElapsedMs}, Success={Success}",
+                cnouaResponse.Ezert8, stopwatch.ElapsedMilliseconds, cnouaResponse.Ezert8 == "00000000");
+
+            // Map EZERT8 to response
+            return MapCnouaResponse(cnouaResponse, requestTimestamp, stopwatch.ElapsedMilliseconds);
+        }
+        catch (BrokenCircuitException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "CNOUA circuit breaker open - service unavailable");
+
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (circuit breaker open)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (TimeoutRejectedException ex)
+        {
+            stopwatch.Stop();
+            _logger.LogError(ex, "CNOUA request timeout after 10 seconds");
+
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (timeout)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "CNOUA validation failed for ClaimId: {ClaimId}", request.ClaimId);
+            _logger.LogError(ex, "CNOUA validation exception: {Message}", ex.Message);
 
-            return new ExternalValidationResponse
-            {
-                Status = "ERROR",
-                Message = "CNOUA system error",
-                ValidatedAt = DateTime.UtcNow,
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                ErrorDetails = ex.Message,
-                ShouldRetry = true
-            };
+            return CreateErrorResponse(
+                "SYS-005",
+                "Serviço de validação indisponível (exception)",
+                requestTimestamp,
+                stopwatch.ElapsedMilliseconds);
         }
     }
 
     /// <inheritdoc/>
-    public async Task<SystemHealthStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
-            // Simulate health check
-            await Task.Delay(50, cancellationToken);
+            var httpClient = _httpClientFactory.CreateClient("CNOUA");
+            var healthEndpoint = "health"; // Relative to base address
 
-            stopwatch.Stop();
+            var response = await httpClient.GetAsync(healthEndpoint, cancellationToken);
+            var isHealthy = response.IsSuccessStatusCode;
 
-            return new SystemHealthStatus
-            {
-                SystemName = SystemName,
-                Status = "HEALTHY",
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                LastCheckedAt = DateTime.UtcNow,
-                Metrics = new Dictionary<string, object>
-                {
-                    ["uptime_seconds"] = 86400,
-                    ["request_count_24h"] = 1523,
-                    ["avg_response_time_ms"] = 125
-                }
-            };
+            _logger.LogInformation("CNOUA health check: {Status}", isHealthy ? "HEALTHY" : "UNHEALTHY");
+            return isHealthy;
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            _logger.LogError(ex, "CNOUA health check failed");
-
-            return new SystemHealthStatus
-            {
-                SystemName = SystemName,
-                Status = "UNHEALTHY",
-                ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                LastCheckedAt = DateTime.UtcNow,
-                ErrorMessage = ex.Message
-            };
+            _logger.LogError(ex, "CNOUA health check failed: {Message}", ex.Message);
+            return false;
         }
     }
 
     /// <inheritdoc/>
-    public Task<SystemConfiguration> GetConfigurationAsync(CancellationToken cancellationToken = default)
+    public bool SupportsProduct(int productCode)
     {
-        var config = new SystemConfiguration
-        {
-            SystemName = SystemName,
-            Version = "2.1.0",
-            SupportedProducts = new List<string> { "CNOUA_CONSORTIUM", "CNOUA_PROPERTY", "CNOUA_VEHICLE" },
-            TimeoutSeconds = 30,
-            RetryConfig = new RetryConfiguration
-            {
-                MaxRetries = 3,
-                InitialDelayMs = 1000,
-                BackoffMultiplier = 2.0,
-                MaxDelayMs = 10000
-            },
-            Properties = new Dictionary<string, object>
-            {
-                ["max_payment_amount"] = 500000,
-                ["requires_authorization"] = true,
-                ["validation_rules"] = "CNOUA_STANDARD_V2"
-            }
-        };
-
-        return Task.FromResult(config);
+        // T022: Consortium product routing (6814, 7701, 7709)
+        var supportedProducts = new[] { 6814, 7701, 7709 };
+        return supportedProducts.Contains(productCode);
     }
 
     /// <summary>
-    /// Checks if product code is supported by CNOUA
+    /// Calls CNOUA REST API service with HTTP POST
     /// </summary>
-    private bool IsProductSupported(string productCode)
-    {
-        var supportedPrefixes = new[] { "CNOUA", "CNS", "CONSORTIUM" };
-        return supportedPrefixes.Any(prefix =>
-            productCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <summary>
-    /// Performs CNOUA-specific validation logic
-    /// </summary>
-    private async Task<ExternalValidationResponse> PerformCNOUAValidationAsync(
+    private async Task<HttpResponseMessage> CallCnouaServiceAsync(
         ExternalValidationRequest request,
         CancellationToken cancellationToken)
     {
-        // Simulate external API call
-        await Task.Delay(150, cancellationToken);
+        var httpClient = _httpClientFactory.CreateClient("CNOUA");
 
-        // Business rules validation
-        var validationErrors = new List<string>();
-
-        // Rule 1: Maximum payment amount
-        if (request.Amount > 500000)
+        // Build request payload for CNOUA API
+        var payload = new
         {
-            validationErrors.Add("Payment amount exceeds CNOUA maximum limit (500,000)");
-        }
+            fonte = request.Fonte,
+            protocolNumber = request.Protsini,
+            dac = request.Dac,
+            productCode = request.CodProdu,
+            claimNumber = $"{request.Orgsin:D2}/{request.Rmosin:D2}/{request.Numsin:D6}",
+            contractNumber = request.NumContrato,
+            principalAmount = request.ValorPrincipal,
+            beneficiary = request.Beneficiario
+        };
 
-        // Rule 2: Tax ID validation
-        if (string.IsNullOrWhiteSpace(request.BeneficiaryTaxId))
-        {
-            validationErrors.Add("Beneficiary tax ID is required for CNOUA validation");
-        }
+        var json = JsonSerializer.Serialize(payload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        // Rule 3: Currency validation
-        if (request.CurrencyCode != "BRL")
-        {
-            validationErrors.Add("CNOUA only supports BRL currency");
-        }
+        // T024: Log request payload
+        _logger.LogDebug("CNOUA request payload: {Payload}", json);
 
-        // Return validation result
-        if (validationErrors.Any())
-        {
-            return new ExternalValidationResponse
-            {
-                Status = "REJECTED",
-                Message = string.Join("; ", validationErrors),
-                ValidatedAt = DateTime.UtcNow,
-                ValidationCode = "CNOUA_VALIDATION_FAILED",
-                AdditionalData = new Dictionary<string, object>
-                {
-                    ["validation_errors"] = validationErrors
-                }
-            };
-        }
+        return await httpClient.PostAsync("validate", content, cancellationToken);
+    }
 
-        // T089: Simulate EZERT8 response code (in production this would come from actual service)
-        var ezertCode = SimulateEzertResponse(request);
-
-        // Log raw EZERT8 code for debugging
-        _logger.LogInformation("CNOUA EZERT8 code received: {EzertCode} for ClaimId: {ClaimId}",
-            ezertCode, request.ClaimId);
-
-        // Map EZERT8 code to Portuguese error message
-        var errorMessage = MapEzertCodeToMessage(ezertCode);
-
-        if (ezertCode != "00000000")
-        {
-            _logger.LogWarning("CNOUA validation failed with EZERT8: {EzertCode} - {Message}",
-                ezertCode, errorMessage);
-
-            return new ExternalValidationResponse
-            {
-                Status = "REJECTED",
-                Message = errorMessage,
-                ValidatedAt = DateTime.UtcNow,
-                ValidationCode = ezertCode,
-                AdditionalData = new Dictionary<string, object>
-                {
-                    ["ezert8_code"] = ezertCode,
-                    ["raw_error_code"] = ezertCode,
-                    ["error_source"] = "CNOUA"
-                }
-            };
-        }
+    /// <summary>
+    /// Maps CNOUA API response to ExternalValidationResponse DTO
+    /// </summary>
+    private ExternalValidationResponse MapCnouaResponse(
+        CnouaApiResponse cnouaResponse,
+        DateTime requestTimestamp,
+        long elapsedMs)
+    {
+        var (errorCode, message) = EzertErrorMap.TryGetValue(cnouaResponse.Ezert8, out var mapping)
+            ? mapping
+            : ("SYS-005", "Erro desconhecido de validação CNOUA");
 
         return new ExternalValidationResponse
         {
-            Status = "APPROVED",
-            Message = "CNOUA validation passed successfully",
-            ValidatedAt = DateTime.UtcNow,
-            ValidationCode = ezertCode,
-            AdditionalData = new Dictionary<string, object>
-            {
-                ["approval_reference"] = $"CNOUA-{DateTime.UtcNow:yyyyMMddHHmmss}-{request.ClaimId}",
-                ["validation_level"] = "STANDARD",
-                ["ezert8_code"] = ezertCode
-            }
+            Ezert8 = cnouaResponse.Ezert8,
+            ErrorMessage = cnouaResponse.Ezert8 == "00000000" ? null : message,
+            ValidationService = SystemName,
+            RequestTimestamp = requestTimestamp,
+            ResponseTimestamp = DateTime.UtcNow,
+            ElapsedMilliseconds = elapsedMs
         };
     }
 
     /// <summary>
-    /// Maps EZERT8 code to Portuguese error message
+    /// Creates error response for validation failures
     /// </summary>
-    private string MapEzertCodeToMessage(string ezertCode)
+    private ExternalValidationResponse CreateErrorResponse(
+        string ezert8,
+        string errorMessage,
+        DateTime requestTimestamp,
+        long elapsedMs)
     {
-        if (EzertErrorMessages.TryGetValue(ezertCode, out var message))
+        return new ExternalValidationResponse
         {
-            return message;
-        }
-
-        _logger.LogWarning("Unknown EZERT8 code: {EzertCode}. Using generic error message.", ezertCode);
-        return $"Erro de validação CNOUA (código: {ezertCode})";
+            Ezert8 = ezert8,
+            ErrorMessage = errorMessage,
+            ValidationService = SystemName,
+            RequestTimestamp = requestTimestamp,
+            ResponseTimestamp = DateTime.UtcNow,
+            ElapsedMilliseconds = elapsedMs
+        };
     }
 
     /// <summary>
-    /// Simulates EZERT8 response code (for demonstration purposes)
-    /// In production, this would be replaced with actual service call parsing
+    /// CNOUA API response structure
     /// </summary>
-    private string SimulateEzertResponse(ExternalValidationRequest request)
+    private class CnouaApiResponse
     {
-        // Simulate business rules that would return different EZERT8 codes
-        if (request.Amount > 500000)
-        {
-            return "EZERT8007"; // Valor excede limite permitido
-        }
-
-        if (string.IsNullOrWhiteSpace(request.BeneficiaryTaxId))
-        {
-            return "EZERT8009"; // Beneficiário não autorizado
-        }
-
-        // Default success
-        return "00000000";
+        public string Ezert8 { get; set; } = string.Empty;
+        public string? Message { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }

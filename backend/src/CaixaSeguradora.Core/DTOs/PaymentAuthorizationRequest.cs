@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CaixaSeguradora.Core.DTOs;
 
 /// <summary>
@@ -84,4 +86,78 @@ public class PaymentAuthorizationRequest
     /// Force validation bypass (admin only)
     /// </summary>
     public bool BypassValidation { get; set; } = false;
+
+    /// <summary>
+    /// External validation required before authorization
+    /// </summary>
+    public bool ExternalValidationRequired { get; set; } = false;
+
+    /// <summary>
+    /// Target validation service (CNOUA, SIPUA, SIMDA) - null for auto-routing
+    /// </summary>
+    public string? RoutingService { get; set; }
+
+    /// <summary>
+    /// Payment type (1-5 per BR-004)
+    /// 1 = Direct Payment, 2 = Reimbursement, 3 = Salvage, 4 = Advance, 5 = Other
+    /// </summary>
+    [Range(1, 5, ErrorMessage = "Payment type must be between 1 and 5")]
+    public int PaymentType { get; set; } = 1;
+
+    /// <summary>
+    /// Claim composite key: Insurance Type
+    /// </summary>
+    public int? Tipseg { get; set; }
+
+    /// <summary>
+    /// Claim composite key: Origin
+    /// </summary>
+    public int? Orgsin { get; set; }
+
+    /// <summary>
+    /// Claim composite key: Branch
+    /// </summary>
+    public int? Rmosin { get; set; }
+
+    /// <summary>
+    /// Claim composite key: Claim Number
+    /// </summary>
+    public int? Numsin { get; set; }
+
+    // Portuguese property names for backward compatibility with tests
+
+    /// <summary>
+    /// Tipo de pagamento (1-5) - Portuguese alias for PaymentType
+    /// </summary>
+    public int TipoPagamento { get => PaymentType; set => PaymentType = value; }
+
+    /// <summary>
+    /// Valor principal - Portuguese alias for Amount
+    /// </summary>
+    public decimal ValorPrincipal { get => Amount; set => Amount = value; }
+
+    /// <summary>
+    /// Valor de correção - Portuguese alias for correction/interest
+    /// </summary>
+    public decimal ValorCorrecao { get; set; }
+
+    /// <summary>
+    /// Favorecido/Beneficiário - Portuguese alias for BeneficiaryName
+    /// </summary>
+    public string? Favorecido { get => BeneficiaryName; set => BeneficiaryName = value ?? string.Empty; }
+
+    /// <summary>
+    /// Tipo de apólice - Portuguese alias for policy type
+    /// </summary>
+    public string? TipoApolice { get; set; }
+
+    /// <summary>
+    /// Observações - Portuguese alias for Notes
+    /// </summary>
+    public string? Observacoes { get => Notes; set => Notes = value; }
+
+    /// <summary>
+    /// Número do contrato (for consortium contract validation routing)
+    /// </summary>
+    public int? NumContrato { get; set; }
 }

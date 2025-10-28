@@ -52,6 +52,40 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Caixa Seguradora Brand Colors
+        caixa: {
+          blue: {
+            900: '#001F54',
+            800: '#003380',
+            700: '#0047BB', // Primary blue
+            600: '#0052CC',
+            500: '#006BE6',
+            400: '#4A9FFF',
+            300: '#85C1FF',
+            200: '#B8DAFF',
+            100: '#E3F2FF',
+            50: '#F0F8FF',
+          },
+          yellow: {
+            900: '#994D00',
+            800: '#CC6600',
+            700: '#FF8000',
+            600: '#FF9500',
+            500: '#FFB81C', // Secondary yellow/orange
+            400: '#FFC647',
+            300: '#FFD470',
+            200: '#FFE299',
+            100: '#FFF0C2',
+            50: '#FFF9EB',
+          },
+        },
+        // Semantic colors
+        success: '#10B981',
+        error: '#EF4444',
+        warning: '#F59E0B',
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",

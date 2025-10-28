@@ -16,6 +16,7 @@ using System.Text;
 using Serilog;
 using SoapCore;
 using System.Reflection;
+using AspNetCoreRateLimit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,18 +96,63 @@ builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPhaseManagementService, PhaseManagementService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ILegacySystemDocsService, LegacySystemDocsService>();
 
+// T032: Transaction Coordinator for atomic transaction management
+builder.Services.AddScoped<TransactionCoordinator>();
+
+// TODO: FASE 1 - Re-enable SOAP Services after fixing property mappings
 // SOAP Services
-builder.Services.AddScoped<ISolicitacaoService, SolicitacaoService>();
-builder.Services.AddSoapCore();
+// builder.Services.AddScoped<ISolicitacaoService, SolicitacaoService>();
+// builder.Services.AddSoapCore();
 
-// External Validation Services
-builder.Services.AddScoped<IExternalValidationService, CNOUAValidationClient>();
-builder.Services.AddScoped<IExternalValidationService, SIPUAValidationClient>();
-builder.Services.AddScoped<IExternalValidationService, SIMDAValidationClient>();
+// T021: External Validation Services with dedicated interfaces
+builder.Services.AddScoped<ICnouaValidationClient, CnouaValidationClient>();
+builder.Services.AddScoped<ISipuaValidationClient, SipuaValidationClient>();
+builder.Services.AddScoped<ISimdaValidationClient, SimdaValidationClient>();
+
+// T022: External Service Router for routing validation requests
+builder.Services.AddScoped<ExternalServiceRouter>();
+
+// Legacy external validation service interface (backwards compatibility)
+// Note: Old CNOUA/SIPUA/SIMDA class names removed - use new Cnoua/Sipua/Simda clients instead
 
 // HTTP Client Factory
 builder.Services.AddHttpClient();
+
+// T018-T020: Polly resilience policies implemented in validation clients
+// - Retry: 3 attempts with exponential backoff (2s, 4s, 8s)
+// - Circuit Breaker: Open after 5 failures for 30 seconds
+// - Timeout: 10 seconds per request
+
+// HTTP Client for CNOUA REST API
+builder.Services.AddHttpClient("CNOUA", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExternalServices:CNOUA:BaseUrl"] ?? "https://cnoua-service.caixaseguradora.com.br");
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("User-Agent", "CaixaSeguradora-Claims-API/1.0");
+});
+
+// HTTP Client for SIPUA SOAP Service
+builder.Services.AddHttpClient("SIPUA", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExternalServices:SIPUA:BaseUrl"] ?? "https://sipua-service.caixaseguradora.com.br");
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("Accept", "text/xml");
+    client.DefaultRequestHeaders.Add("SOAPAction", "http://caixaseguradora.com.br/sipua/ValidateContract");
+});
+
+// HTTP Client for SIMDA SOAP Service
+builder.Services.AddHttpClient("SIMDA", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExternalServices:SIMDA:BaseUrl"] ?? "https://simda-service.caixaseguradora.com.br");
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("Accept", "text/xml");
+    client.DefaultRequestHeaders.Add("SOAPAction", "http://caixaseguradora.com.br/simda/ValidateHBContract");
+});
+
+Log.Information("HTTP clients configured for external services (CNOUA, SIPUA, SIMDA)");
 
 // HTTP Context Accessor (for audit fields)
 builder.Services.AddHttpContextAccessor();
@@ -179,6 +225,12 @@ builder.Services.AddResponseCaching();
 // Memory Cache
 builder.Services.AddMemoryCache();
 
+// T139 [Performance]: IP Rate Limiting Configuration
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
 // Health Checks
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ClaimsDbContext>("database")
@@ -209,6 +261,9 @@ app.UseHttpsRedirection();
 // CORS must be before Authorization
 app.UseCors();
 
+// T139 [Performance]: IP Rate Limiting (must be after UseCors)
+app.UseIpRateLimiting();
+
 // Response Caching
 app.UseResponseCaching();
 
@@ -218,16 +273,17 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// TODO: FASE 1 - Re-enable SOAP endpoint after fixing SolicitacaoService property mappings
 // SOAP Endpoint Configuration
-app.UseSoapEndpoint<ISolicitacaoService>(
-    path: "/soap/solicitacao",
-    encoder: new SoapEncoderOptions
-    {
-        WriteEncoding = System.Text.Encoding.UTF8
-    },
-    serializer: SoapSerializer.XmlSerializer);
-
-Log.Information("SOAP Endpoint registered at /soap/solicitacao (WSDL: /soap/solicitacao?wsdl)");
+// app.UseSoapEndpoint<ISolicitacaoService>(
+//     path: "/soap/solicitacao",
+//     encoder: new SoapEncoderOptions
+//     {
+//         WriteEncoding = System.Text.Encoding.UTF8
+//     },
+//     serializer: SoapSerializer.XmlSerializer);
+//
+// Log.Information("SOAP Endpoint registered at /soap/solicitacao (WSDL: /soap/solicitacao?wsdl)");
 
 // Health Check Endpoint
 app.MapHealthChecks("/health");
@@ -265,3 +321,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Make Program class accessible to integration tests
+public partial class Program { }

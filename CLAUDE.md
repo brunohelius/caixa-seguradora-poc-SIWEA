@@ -374,3 +374,10 @@ dotnet ef migrations add MigrationName
 dotnet ef database update
 dotnet ef dbcontext scaffold "ConnectionString" Provider --output-dir Entities
 ```
+
+## Active Technologies
+- .NET 9.0 (C# 13) backend, React 19.1.1 with TypeScript 5.9 frontend + ASP.NET Core 9.0, Entity Framework Core 9.0, SoapCore 1.1.0, Polly 8.2.0, FluentValidation 11.9.0, AutoMapper 12.0.1, Serilog 4.0.0, React Router 7.9.4, Axios 1.12.2, TanStack Query 5.90.5 (001-complete-migration-gaps)
+- SQL Server (legacy schema database-first approach, no migrations permitted) (001-complete-migration-gaps)
+
+## Recent Changes
+- 001-complete-migration-gaps: Added .NET 9.0 (C# 13) backend, React 19.1.1 with TypeScript 5.9 frontend + ASP.NET Core 9.0, Entity Framework Core 9.0, SoapCore 1.1.0, Polly 8.2.0, FluentValidation 11.9.0, AutoMapper 12.0.1, Serilog 4.0.0, React Router 7.9.4, Axios 1.12.2, TanStack Query 5.90.5

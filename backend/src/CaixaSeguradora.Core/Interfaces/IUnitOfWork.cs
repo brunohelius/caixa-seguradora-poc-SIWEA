@@ -39,9 +39,9 @@ public interface IUnitOfWork : IDisposable
     IRepository<SystemControl> SystemControls { get; }
 
     /// <summary>
-    /// Repository for ClaimHistory entities
+    /// Repository for ClaimHistory entities with optimized pagination (T085 [US3])
     /// </summary>
-    IRepository<ClaimHistory> ClaimHistories { get; }
+    IClaimHistoryRepository ClaimHistories { get; }
 
     /// <summary>
     /// Repository for ClaimAccompaniment entities
@@ -83,6 +83,11 @@ public interface IUnitOfWork : IDisposable
     #region Transaction Methods
 
     /// <summary>
+    /// Gets whether a transaction is currently active
+    /// </summary>
+    bool HasActiveTransaction { get; }
+
+    /// <summary>
     /// Saves all pending changes to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -95,6 +100,14 @@ public interface IUnitOfWork : IDisposable
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task representing the asynchronous operation</returns>
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Begins a new database transaction with specified isolation level
+    /// </summary>
+    /// <param name="isolationLevel">Transaction isolation level</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the asynchronous operation</returns>
+    Task BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Commits the current transaction and saves all changes

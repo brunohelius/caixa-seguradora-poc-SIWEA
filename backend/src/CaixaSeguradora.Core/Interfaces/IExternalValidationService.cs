@@ -11,13 +11,13 @@ public interface IExternalValidationService
     string SystemName { get; }
 
     /// <summary>
-    /// Validates payment authorization request
+    /// Validates payment authorization request (legacy MVP method)
     /// </summary>
     /// <param name="request">Validation request data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation response</returns>
-    Task<ExternalValidationResponse> ValidatePaymentAsync(
-        ExternalValidationRequest request,
+    Task<LegacyExternalValidationResponse> ValidatePaymentAsync(
+        LegacyExternalValidationRequest request,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -38,9 +38,9 @@ public interface IExternalValidationService
 }
 
 /// <summary>
-/// Request for external validation
+/// Request for external validation (legacy MVP version - use DTOs.ExternalValidationRequest for complete migration)
 /// </summary>
-public class ExternalValidationRequest
+public class LegacyExternalValidationRequest
 {
     /// <summary>
     /// Claim identifier
@@ -84,9 +84,9 @@ public class ExternalValidationRequest
 }
 
 /// <summary>
-/// Response from external validation
+/// Response from external validation (legacy MVP version - use DTOs.ExternalValidationResponse for complete migration)
 /// </summary>
-public class ExternalValidationResponse
+public class LegacyExternalValidationResponse
 {
     /// <summary>
     /// Validation status (APPROVED, REJECTED, PENDING, ERROR, TIMEOUT)

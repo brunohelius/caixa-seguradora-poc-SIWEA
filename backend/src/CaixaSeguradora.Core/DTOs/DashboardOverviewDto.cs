@@ -89,6 +89,222 @@ public class DashboardOverviewDto
     /// Warnings count
     /// </summary>
     public int WarningsCount { get; set; }
+
+    // Portuguese property names for backward compatibility with tests
+
+    /// <summary>
+    /// Progresso Geral - Overall progress (Portuguese)
+    /// </summary>
+    public DashboardProgressDto? ProgressoGeral { get; set; }
+
+    /// <summary>
+    /// Status das User Stories - User stories status (Portuguese)
+    /// </summary>
+    public List<UserStoryDto>? StatusUserStories { get; set; }
+
+    /// <summary>
+    /// Componentes Migrados - Migrated components (Portuguese)
+    /// </summary>
+    public DashboardComponentsDto? ComponentesMigrados { get; set; }
+
+    /// <summary>
+    /// Saúde do Sistema - System health (Portuguese)
+    /// </summary>
+    public SystemHealthDto? SaudeDoSistema { get; set; }
+
+    /// <summary>
+    /// Última Atualização - Last update timestamp (Portuguese)
+    /// </summary>
+    public DateTime UltimaAtualizacao { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Dashboard progress DTO (Portuguese structure)
+/// </summary>
+public class DashboardProgressDto
+{
+    /// <summary>
+    /// Percentage complete (0-100)
+    /// </summary>
+    public decimal PercentualCompleto { get; set; }
+
+    /// <summary>
+    /// Tasks completed
+    /// </summary>
+    public int TarefasConcluidas { get; set; }
+
+    /// <summary>
+    /// Total tasks
+    /// </summary>
+    public int TotalTarefas { get; set; }
+
+    /// <summary>
+    /// User stories completed
+    /// </summary>
+    public int UserStoriesCompletas { get; set; }
+
+    /// <summary>
+    /// Total user stories
+    /// </summary>
+    public int TotalUserStories { get; set; }
+
+    /// <summary>
+    /// Requirements completed
+    /// </summary>
+    public int RequisitosCompletos { get; set; }
+
+    /// <summary>
+    /// Total requirements
+    /// </summary>
+    public int RequisitosTotal { get; set; }
+
+    /// <summary>
+    /// Tests approved
+    /// </summary>
+    public int TestesAprovados { get; set; }
+
+    /// <summary>
+    /// Total tests
+    /// </summary>
+    public int TestesTotal { get; set; }
+
+    /// <summary>
+    /// Code coverage percentage
+    /// </summary>
+    public decimal CoberturaCodigo { get; set; }
+
+    /// <summary>
+    /// Blockers count
+    /// </summary>
+    public int Bloqueios { get; set; }
+}
+
+/// <summary>
+/// Dashboard components DTO (Portuguese structure)
+/// </summary>
+public class DashboardComponentsDto
+{
+    /// <summary>
+    /// Backend screens/endpoints
+    /// </summary>
+    public ComponentMigrationCount? Telas { get; set; }
+
+    /// <summary>
+    /// Business rules
+    /// </summary>
+    public ComponentMigrationCount? RegrasNegocio { get; set; }
+
+    /// <summary>
+    /// Database integrations
+    /// </summary>
+    public ComponentMigrationCount? IntegracoesBD { get; set; }
+
+    /// <summary>
+    /// External services
+    /// </summary>
+    public ComponentMigrationCount? ServicosExternos { get; set; }
+
+    /// <summary>
+    /// Tests
+    /// </summary>
+    public ComponentMigrationCount? Testes { get; set; }
+}
+
+/// <summary>
+/// Component migration count
+/// </summary>
+public class ComponentMigrationCount
+{
+    /// <summary>
+    /// Total count
+    /// </summary>
+    public int Total { get; set; }
+
+    /// <summary>
+    /// Completed count
+    /// </summary>
+    public int Completas { get; set; }
+
+    /// <summary>
+    /// In progress count
+    /// </summary>
+    public int EmProgresso { get; set; }
+
+    /// <summary>
+    /// Blocked count
+    /// </summary>
+    public int Bloqueadas { get; set; }
+
+    /// <summary>
+    /// Percentage complete
+    /// </summary>
+    public decimal Percentual => Total > 0 ? (decimal)Completas / Total * 100 : 0;
+}
+
+/// <summary>
+/// User Story DTO (Portuguese structure)
+/// </summary>
+public class UserStoryDto
+{
+    /// <summary>
+    /// User story code (e.g., US-001)
+    /// </summary>
+    public string Codigo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User story name
+    /// </summary>
+    public string Nome { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Status (COMPLETED, IN_PROGRESS, PENDING, BLOCKED)
+    /// </summary>
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Completion percentage
+    /// </summary>
+    public decimal PercentualCompleto { get; set; }
+
+    /// <summary>
+    /// Requirements completed
+    /// </summary>
+    public int RequisitosCompletos { get; set; }
+
+    /// <summary>
+    /// Total requirements
+    /// </summary>
+    public int RequisitosTotal { get; set; }
+
+    /// <summary>
+    /// Tests approved
+    /// </summary>
+    public int TestesAprovados { get; set; }
+
+    /// <summary>
+    /// Total tests
+    /// </summary>
+    public int TestesTotal { get; set; }
+
+    /// <summary>
+    /// Responsible team/person
+    /// </summary>
+    public string Responsavel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Estimated completion date
+    /// </summary>
+    public DateTime DataEstimada { get; set; }
+
+    /// <summary>
+    /// Actual completion date
+    /// </summary>
+    public DateTime? DataConclusao { get; set; }
+
+    /// <summary>
+    /// Blockers description
+    /// </summary>
+    public string? Bloqueios { get; set; }
 }
 
 /// <summary>

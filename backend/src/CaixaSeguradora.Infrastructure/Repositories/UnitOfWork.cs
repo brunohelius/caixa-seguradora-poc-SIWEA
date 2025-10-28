@@ -22,7 +22,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<PolicyMaster>? _policyMasters;
     private IRepository<CurrencyUnit>? _currencyUnits;
     private IRepository<SystemControl>? _systemControls;
-    private IRepository<ClaimHistory>? _claimHistories;
+    private IClaimHistoryRepository? _claimHistories;
     private IRepository<ClaimAccompaniment>? _claimAccompaniments;
     private IRepository<ClaimPhase>? _claimPhases;
     private IRepository<PhaseEventRelationship>? _phaseEventRelationships;
@@ -103,13 +103,13 @@ public class UnitOfWork : IUnitOfWork
     }
 
     /// <summary>
-    /// Repository for ClaimHistory entities
+    /// Repository for ClaimHistory entities with optimized pagination (T085 [US3])
     /// </summary>
-    public IRepository<ClaimHistory> ClaimHistories
+    public IClaimHistoryRepository ClaimHistories
     {
         get
         {
-            _claimHistories ??= new Repository<ClaimHistory>(_context);
+            _claimHistories ??= new ClaimHistoryRepository(_context);
             return _claimHistories;
         }
     }
@@ -203,6 +203,11 @@ public class UnitOfWork : IUnitOfWork
     #region Transaction Methods
 
     /// <summary>
+    /// Gets whether a transaction is currently active
+    /// </summary>
+    public bool HasActiveTransaction => _context.HasActiveTransaction;
+
+    /// <summary>
     /// Saves all pending changes to the database
     /// </summary>
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -221,6 +226,20 @@ public class UnitOfWork : IUnitOfWork
         }
 
         await _context.BeginTransactionAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Begins a new database transaction with specified isolation level
+    /// </summary>
+    public async Task BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+    {
+        if (_context.HasActiveTransaction)
+        {
+            return;
+        }
+
+        // Call ClaimsDbContext.BeginTransactionAsync with isolation level
+        await _context.BeginTransactionAsync(isolationLevel, cancellationToken);
     }
 
     /// <summary>

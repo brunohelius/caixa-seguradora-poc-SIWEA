@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { SearchForm } from '../components/claims/SearchForm';
 import { searchClaim } from '../services/claimsApi';
 import type { ClaimSearchCriteria } from '../models/Claim';
+import { AlertCircle, Info } from 'lucide-react';
 
 export const ClaimSearchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,35 +38,53 @@ export const ClaimSearchPage: React.FC = () => {
   };
 
   return (
-    <div className="container mt-4">
-      <div className="row justify-content-center">
-        <div className="col-lg-10">
-          <div className="card shadow">
-            <div className="card-header bg-primary text-white">
-              <h3 className="mb-0">Pesquisa de Sinistros</h3>
-            </div>
-            <div className="card-body">
-              <p className="text-muted mb-4">
-                Selecione o tipo de pesquisa e preencha os campos correspondentes.
-              </p>
+    <div className="container-modern py-8 fade-in">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Main Search Card */}
+        <div className="card-modern">
+          <div className="card-header bg-gradient-caixa text-white">
+            <h2 className="text-2xl font-bold mb-2">Pesquisa de Sinistros</h2>
+            <p className="text-blue-100 text-sm">
+              Selecione o tipo de pesquisa e preencha os campos correspondentes.
+            </p>
+          </div>
+          <div className="card-body">
+            <SearchForm onSearch={handleSearch} loading={loading} />
 
-              <SearchForm onSearch={handleSearch} loading={loading} />
-
-              {error && (
-                <div className="alert alert-danger mt-4" role="alert">
-                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                  {error}
+            {/* Error Alert */}
+            {error && (
+              <div className="alert alert-error mt-6 fade-in">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <div>
+                  <strong className="font-semibold">Erro:</strong> {error}
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Instructions Card */}
+        <div className="card-modern bg-gradient-caixa-light">
+          <div className="card-header border-b-0">
+            <div className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-caixa-blue-700" />
+              <h3 className="text-lg font-semibold">Instruções de Pesquisa</h3>
             </div>
           </div>
-
-          <div className="mt-4 p-3 bg-light rounded">
-            <h6>Instruções:</h6>
-            <ul className="mb-0 small">
-              <li><strong>Por Protocolo:</strong> Informe Fonte, Protocolo e DAC</li>
-              <li><strong>Por Número do Sinistro:</strong> Informe Tipo de Seguro, Origem, Ramo e Número</li>
-              <li><strong>Por Código Líder:</strong> Informe Código Líder e Sinistro Líder</li>
+          <div className="card-body pt-0">
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="badge badge-blue flex-shrink-0">Protocolo</span>
+                <span className="text-gray-700">Informe Fonte, Protocolo e DAC</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="badge badge-blue flex-shrink-0">Sinistro</span>
+                <span className="text-gray-700">Informe Tipo de Seguro, Origem, Ramo e Número</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="badge badge-blue flex-shrink-0">Líder</span>
+                <span className="text-gray-700">Informe Código Líder e Sinistro Líder</span>
+              </li>
             </ul>
           </div>
         </div>

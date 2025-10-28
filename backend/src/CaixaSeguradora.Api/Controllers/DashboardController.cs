@@ -30,6 +30,7 @@ public class DashboardController : ControllerBase
     /// <returns>Dashboard overview data</returns>
     /// <response code="200">Overview retrieved successfully</response>
     [HttpGet("overview")]
+    [ResponseCache(Duration = 30, VaryByQueryKeys = new string[] { })]  // T142: Cache for 30 seconds
     [ProducesResponseType(typeof(DashboardOverviewDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DashboardOverviewDto>> GetOverview(CancellationToken cancellationToken)
     {
@@ -44,6 +45,7 @@ public class DashboardController : ControllerBase
     /// <returns>Component status list</returns>
     /// <response code="200">Components retrieved successfully</response>
     [HttpGet("components")]
+    [ResponseCache(Duration = 60, VaryByQueryKeys = new string[] { })]  // T142: Cache for 60 seconds
     [ProducesResponseType(typeof(IEnumerable<ComponentStatusDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ComponentStatusDto>>> GetComponents(CancellationToken cancellationToken)
     {
@@ -59,6 +61,7 @@ public class DashboardController : ControllerBase
     /// <returns>Performance metrics</returns>
     /// <response code="200">Metrics retrieved successfully</response>
     [HttpGet("performance")]
+    [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "days" })]  // T142: Cache for 60s, vary by days parameter
     [ProducesResponseType(typeof(IEnumerable<PerformanceMetricDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<PerformanceMetricDto>>> GetPerformanceMetrics(
         [FromQuery] int days = 30,

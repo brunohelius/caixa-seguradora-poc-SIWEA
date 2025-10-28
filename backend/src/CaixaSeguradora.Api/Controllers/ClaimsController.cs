@@ -17,20 +17,26 @@ namespace CaixaSeguradora.Api.Controllers;
 public class ClaimsController : ControllerBase
 {
     private readonly IClaimService _claimService;
+    private readonly IPaymentAuthorizationService _paymentAuthorizationService;
     private readonly IPhaseManagementService _phaseManagementService;
     private readonly ILogger<ClaimsController> _logger;
     private readonly IValidator<ClaimSearchCriteria> _searchValidator;
+    private readonly IValidator<PaymentAuthorizationRequest> _authorizationValidator;
 
     public ClaimsController(
         IClaimService claimService,
+        IPaymentAuthorizationService paymentAuthorizationService,
         IPhaseManagementService phaseManagementService,
         ILogger<ClaimsController> logger,
-        IValidator<ClaimSearchCriteria> searchValidator)
+        IValidator<ClaimSearchCriteria> searchValidator,
+        IValidator<PaymentAuthorizationRequest> authorizationValidator)
     {
         _claimService = claimService ?? throw new ArgumentNullException(nameof(claimService));
+        _paymentAuthorizationService = paymentAuthorizationService ?? throw new ArgumentNullException(nameof(paymentAuthorizationService));
         _phaseManagementService = phaseManagementService ?? throw new ArgumentNullException(nameof(phaseManagementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _searchValidator = searchValidator ?? throw new ArgumentNullException(nameof(searchValidator));
+        _authorizationValidator = authorizationValidator ?? throw new ArgumentNullException(nameof(authorizationValidator));
     }
 
     /// <summary>
@@ -114,6 +120,122 @@ public class ClaimsController : ControllerBase
     }
 
     /// <summary>
+    /// F02 [35 PF] - Authorize payment for a claim with external validation
+    /// Implements 8-step authorization pipeline with transaction atomicity (BR-067)
+    /// </summary>
+    /// <param name="request">Payment authorization request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Authorization response with transaction details</returns>
+    /// <response code="200">Payment authorized successfully</response>
+    /// <response code="400">Validation failed or business rule violation</response>
+    /// <response code="500">Internal error (includes transaction rollback)</response>
+    [HttpPost("authorize-payment")]
+    [ProducesResponseType(typeof(PaymentAuthorizationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AuthorizePayment(
+        [FromBody] PaymentAuthorizationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var correlationId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+        _logger.LogInformation("AuthorizePayment request received. CorrelationId: {CorrelationId}, Claim: {Tipseg}/{Orgsin}/{Rmosin}/{Numsin}, Amount: {Amount}",
+            correlationId, request.Tipseg, request.Orgsin, request.Rmosin, request.Numsin, request.Amount);
+
+        try
+        {
+            // Step 1: FluentValidation request validation
+            var validationResult = await _authorizationValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => $"{e.ErrorCode}: {e.ErrorMessage}").ToList();
+                _logger.LogWarning("Authorization validation failed. Errors: {Errors}", string.Join(", ", errors));
+
+                return BadRequest(new ErrorResponse
+                {
+                    Sucesso = false,
+                    CodigoErro = "VALIDATION_FAILED",
+                    Mensagem = "Requisição de autorização inválida",
+                    Detalhes = errors,
+                    Timestamp = DateTime.UtcNow,
+                    TraceId = correlationId
+                });
+            }
+
+            // Step 2-8: Execute authorization pipeline
+            var response = await _paymentAuthorizationService.AuthorizePaymentAsync(request, cancellationToken);
+
+            // Check result
+            if (!response.Sucesso)
+            {
+                // BR-067: Transaction rollback occurred
+                if (response.RollbackOccurred)
+                {
+                    _logger.LogError("Transaction rollback at step {FailedStep}. AuthId: {AuthId}",
+                        response.FailedStep, response.AuthorizationId);
+
+                    return StatusCode(500, new ErrorResponse
+                    {
+                        Sucesso = false,
+                        CodigoErro = "TRANSACTION_ROLLBACK",
+                        Mensagem = $"Falha na transação (passo {response.FailedStep}). Todas as alterações foram revertidas.",
+                        Detalhes = response.Errors,
+                        Timestamp = DateTime.UtcNow,
+                        TraceId = correlationId
+                    });
+                }
+
+                // Business rule violation or external validation failure
+                _logger.LogWarning("Authorization failed without rollback. Errors: {Errors}",
+                    string.Join(", ", response.Errors));
+
+                return BadRequest(new ErrorResponse
+                {
+                    Sucesso = false,
+                    CodigoErro = "AUTHORIZATION_FAILED",
+                    Mensagem = response.Errors.FirstOrDefault() ?? "Falha na autorização de pagamento",
+                    Detalhes = response.Errors,
+                    Timestamp = DateTime.UtcNow,
+                    TraceId = correlationId
+                });
+            }
+
+            // Success
+            _logger.LogInformation("Payment authorized successfully. AuthId: {AuthId}, HistoryOccurrence: {Occurrence}",
+                response.AuthorizationId, response.HistoryOccurrence);
+
+            return Ok(response);
+        }
+        catch (ClaimNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Claim not found for authorization. CorrelationId: {CorrelationId}", correlationId);
+
+            return NotFound(new ErrorResponse
+            {
+                Sucesso = false,
+                CodigoErro = ex.ErrorCode,
+                Mensagem = ex.Message,
+                Detalhes = new List<string>(),
+                Timestamp = DateTime.UtcNow,
+                TraceId = correlationId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during payment authorization. CorrelationId: {CorrelationId}", correlationId);
+
+            return StatusCode(500, new ErrorResponse
+            {
+                Sucesso = false,
+                CodigoErro = "INTERNAL_ERROR",
+                Mensagem = "Erro interno ao processar autorização. Tente novamente mais tarde.",
+                Detalhes = new List<string>(),
+                Timestamp = DateTime.UtcNow,
+                TraceId = correlationId
+            });
+        }
+    }
+
+    /// <summary>
     /// Get claim by composite primary key
     /// </summary>
     /// <param name="tipseg">Insurance Type</param>
@@ -124,9 +246,9 @@ public class ClaimsController : ControllerBase
     /// <response code="200">Claim found successfully</response>
     /// <response code="404">Claim not found</response>
     [HttpGet("{tipseg}/{orgsin}/{rmosin}/{numsin}")]
+    [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "tipseg", "orgsin", "rmosin", "numsin" })]  // T142: Cache for 60s
     [ProducesResponseType(typeof(ClaimDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "tipseg", "orgsin", "rmosin", "numsin" })]
     public async Task<IActionResult> GetClaimById(
         [FromRoute] int tipseg,
         [FromRoute] int orgsin,

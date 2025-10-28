@@ -13,7 +13,7 @@ interface OverviewCardsProps {
   overview?: {
     percentualCompleto: number;
     userStoriesCompletas: number;
-    userStoriesTotal: number;
+    totalUserStories: number;
     requisitosCompletos: number;
     requisitosTotal: number;
     testesAprovados: number;
@@ -88,7 +88,7 @@ const OverviewCards: React.FC<OverviewCardsProps> = ({ overview }) => {
           <CircularProgress percentage={overview.percentualCompleto} />
           <p className="mt-4 text-sm text-muted-foreground">
             <strong className="text-foreground">
-              {overview.userStoriesCompletas}/{overview.userStoriesTotal}
+              {overview.userStoriesCompletas}/{overview.totalUserStories}
             </strong>{' '}
             User Stories
           </p>

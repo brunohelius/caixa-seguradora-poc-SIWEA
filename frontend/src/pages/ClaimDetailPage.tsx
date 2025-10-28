@@ -14,9 +14,6 @@ import PaymentHistoryComponent from '../components/claims/PaymentHistoryComponen
 import ClaimPhasesComponent from '../components/claims/ClaimPhasesComponent';
 import type { Claim } from '../models/Claim';
 
-// Caixa Seguradora logo as base64 PNG (placeholder - replace with actual logo)
-const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-
 export const ClaimDetailPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,12 +28,17 @@ export const ClaimDetailPage: React.FC = () => {
 
   if (!claim) {
     return (
-      <div className="container mt-4">
-        <div className="alert alert-warning">
-          Nenhum sinistro selecionado.
-          <button className="btn btn-link" onClick={() => navigate('/claims/search')}>
-            Voltar para pesquisa
-          </button>
+      <div className="container-modern py-8">
+        <div className="alert alert-warning fade-in">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <strong className="font-semibold">Nenhum sinistro selecionado.</strong>
+            <button className="btn btn-ghost mt-2" onClick={() => navigate('/claims/search')}>
+              Voltar para pesquisa
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -111,29 +113,29 @@ export const ClaimDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="container mt-4">
-      {/* Header with Logo */}
-      <div className="card shadow mb-4">
-        <div className="card-body text-center">
-          <img
-            src={LOGO_BASE64}
-            alt="Caixa Seguradora"
-            className="mb-3"
-            style={{ maxHeight: '80px' }}
-          />
-          <h2>Detalhes do Sinistro</h2>
-          <p className="text-muted mb-0">{claim.numeroSinistro}</p>
+    <div className="container-modern py-8 fade-in">
+      {/* Header Card */}
+      <div className="card-modern mb-6 text-center">
+        <div className="card-body">
+          <div className="section-header">
+            <h1 className="section-title">Detalhes do Sinistro</h1>
+            <p className="section-subtitle">
+              <span className="badge badge-blue text-lg">{claim.numeroSinistro}</span>
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="alert alert-success d-flex align-items-center mb-4" role="alert">
-          <i className="bi bi-check-circle-fill me-3 fs-4"></i>
+        <div className="alert alert-success mb-6 fade-in">
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <div>
-            {successMessage}
+            <strong className="font-semibold">{successMessage}</strong>
             {authorizationDetails && (
-              <div style={{ marginTop: '8px', fontSize: '13px' }}>
+              <div className="mt-2 text-sm">
                 <strong>Detalhes:</strong><br />
                 Data: {authorizationDetails.dataMovimento} {authorizationDetails.horaOperacao}<br />
                 Valor Total BTNF: R$ {authorizationDetails.valorTotalBTNF.toFixed(2)}
@@ -144,21 +146,25 @@ export const ClaimDetailPage: React.FC = () => {
       )}
 
       {/* Action Buttons */}
-      <div className="d-flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-3 mb-6">
         <button
-          className="btn btn-secondary"
+          className="btn btn-ghost"
           onClick={() => navigate('/claims/search')}
         >
-          <i className="bi bi-arrow-left me-2"></i>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           Voltar para Pesquisa
         </button>
 
         {claim.valorPendente > 0 && !showPaymentForm && (
           <button
-            className="btn btn-success"
+            className="btn btn-primary"
             onClick={handleAuthorizePayment}
           >
-            <i className="bi bi-check-circle me-2"></i>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Autorizar Pagamento
           </button>
         )}
@@ -166,7 +172,7 @@ export const ClaimDetailPage: React.FC = () => {
 
       {/* Payment Authorization Form */}
       {showPaymentForm && (
-        <div className="card shadow mb-4">
+        <div className="card-modern mb-6 fade-in">
           <div className="card-body">
             <PaymentAuthorizationForm
               claim={claim}
@@ -179,75 +185,81 @@ export const ClaimDetailPage: React.FC = () => {
 
       {/* Financial Summary - Highlighted if pending */}
       {claim.valorPendente > 0 && (
-        <div className="alert alert-warning d-flex align-items-center mb-4" role="alert">
-          <i className="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+        <div className="alert alert-warning mb-6">
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
           <div>
-            <strong>Valor Pendente:</strong> {new Intl.NumberFormat('pt-BR', {
+            <strong className="font-semibold">Valor Pendente:</strong> {new Intl.NumberFormat('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             }).format(claim.valorPendente)}
             <br />
-            <small>Este sinistro possui valores pendentes de autorização.</small>
+            <small className="text-sm">Este sinistro possui valores pendentes de autorização.</small>
           </div>
         </div>
       )}
 
       {/* Tabs Navigation */}
-      <ul className="nav nav-tabs mb-4">
-        <li className="nav-item">
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex gap-2" aria-label="Tabs">
           <button
-            className={`nav-link ${activeTab === 'details' ? 'active' : ''}`}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-caixa-blue-700 text-caixa-blue-700'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
             onClick={() => setActiveTab('details')}
           >
-            <i className="bi bi-info-circle me-2"></i>
+            <svg className="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Detalhes
           </button>
-        </li>
-        <li className="nav-item">
           <button
-            className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'history'
+                ? 'border-caixa-blue-700 text-caixa-blue-700'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
             onClick={() => setActiveTab('history')}
           >
-            <i className="bi bi-clock-history me-2"></i>
+            <svg className="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Histórico de Pagamentos
           </button>
-        </li>
-        <li className="nav-item">
           <button
-            className={`nav-link ${activeTab === 'phases' ? 'active' : ''}`}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'phases'
+                ? 'border-caixa-blue-700 text-caixa-blue-700'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
             onClick={() => setActiveTab('phases')}
           >
-            <i className="bi bi-diagram-3 me-2"></i>
+            <svg className="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
             Fases do Sinistro
           </button>
-        </li>
-      </ul>
+        </nav>
+      </div>
 
       {/* Tab Content */}
       {activeTab === 'details' && (
-        <div className="row g-3">
-          <div className="col-md-6">
-            <ClaimInfoCard title="Informações do Protocolo" fields={protocolFields} />
-          </div>
-          <div className="col-md-6">
-            <ClaimInfoCard title="Informações Financeiras" fields={financialFields} />
-          </div>
-          <div className="col-md-6">
-            <ClaimInfoCard title="Informações da Apólice" fields={policyFields} />
-          </div>
-          <div className="col-md-6">
-            <ClaimInfoCard title="Informações do Fluxo" fields={workflowFields} />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
+          <ClaimInfoCard title="Informações do Protocolo" fields={protocolFields} />
+          <ClaimInfoCard title="Informações Financeiras" fields={financialFields} />
+          <ClaimInfoCard title="Informações da Apólice" fields={policyFields} />
+          <ClaimInfoCard title="Informações do Fluxo" fields={workflowFields} />
           {(claim.codlider || claim.sinlid) && (
-            <div className="col-md-6">
-              <ClaimInfoCard title="Informações do Líder (Resseguro)" fields={leaderFields} />
-            </div>
+            <ClaimInfoCard title="Informações do Líder (Resseguro)" fields={leaderFields} />
           )}
         </div>
       )}
 
       {activeTab === 'history' && (
-        <div className="card shadow">
+        <div className="card-modern fade-in">
           <div className="card-body">
             <PaymentHistoryComponent
               key={refreshHistory}
@@ -263,7 +275,7 @@ export const ClaimDetailPage: React.FC = () => {
       )}
 
       {activeTab === 'phases' && (
-        <div className="card shadow">
+        <div className="card-modern fade-in">
           <div className="card-body">
             <ClaimPhasesComponent
               key={refreshPhases}

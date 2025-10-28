@@ -1,6 +1,7 @@
 using AutoMapper;
 using CaixaSeguradora.Core.DTOs;
 using CaixaSeguradora.Core.Entities;
+using System;
 
 namespace CaixaSeguradora.Api.Mappings;
 
@@ -28,10 +29,13 @@ public class ClaimMappingProfile : Profile
             .ForMember(dest => dest.EhConsorcio, opt => opt.MapFrom(src =>
                 src.IsConsortiumProduct));
 
-        // ClaimHistory to HistoryRecordDto (will be created later)
+        // ClaimHistory to HistoryRecordDto
+        // T077 [US3] - Map ClaimHistory entity to HistoryRecordDto with proper time conversion
         CreateMap<ClaimHistory, HistoryRecordDto>()
-            .ForMember(dest => dest.DataHoraFormatada, opt => opt.MapFrom(src =>
-                $"{src.Dtmovto:dd/MM/yyyy} {src.Horaoper:hh\\:mm\\:ss}"));
+            .ForMember(dest => dest.Horaoper, opt => opt.MapFrom(src =>
+                ParseTimeString(src.Horaoper)))
+            .ForMember(dest => dest.DataHoraFormatada, opt => opt.Ignore())
+            .ForMember(dest => dest.DataHoraCompleta, opt => opt.Ignore());
 
         // ClaimPhase to PhaseRecordDto (will be created later)
         CreateMap<ClaimPhase, PhaseRecordDto>()
@@ -40,48 +44,23 @@ public class ClaimMappingProfile : Profile
             .ForMember(dest => dest.DiasAberta, opt => opt.MapFrom(src =>
                 src.DaysOpen));
     }
+
+    /// <summary>
+    /// Parse time string in HHmmss format to TimeSpan
+    /// </summary>
+    private static TimeSpan ParseTimeString(string horaoper)
+    {
+        if (string.IsNullOrEmpty(horaoper) || horaoper.Length != 6)
+            return TimeSpan.Zero;
+
+        if (!int.TryParse(horaoper.Substring(0, 2), out int hours))
+            hours = 0;
+        if (!int.TryParse(horaoper.Substring(2, 2), out int minutes))
+            minutes = 0;
+        if (!int.TryParse(horaoper.Substring(4, 2), out int seconds))
+            seconds = 0;
+
+        return new TimeSpan(hours, minutes, seconds);
+    }
 }
 
-/// <summary>
-/// History Record DTO
-/// </summary>
-public class HistoryRecordDto
-{
-    public int Tipseg { get; set; }
-    public int Orgsin { get; set; }
-    public int Rmosin { get; set; }
-    public int Numsin { get; set; }
-    public int Ocorhist { get; set; }
-    public int Operacao { get; set; }
-    public DateTime Dtmovto { get; set; }
-    public TimeSpan Horaoper { get; set; }
-    public string DataHoraFormatada { get; set; } = string.Empty;
-    public decimal Valpri { get; set; }
-    public decimal Crrmon { get; set; }
-    public string? Nomfav { get; set; }
-    public string Tipcrr { get; set; } = string.Empty;
-    public decimal Valpribt { get; set; }
-    public decimal Crrmonbt { get; set; }
-    public decimal Valtotbt { get; set; }
-    public string Sitcontb { get; set; } = string.Empty;
-    public string Situacao { get; set; } = string.Empty;
-    public string Ezeusrid { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Phase Record DTO
-/// </summary>
-public class PhaseRecordDto
-{
-    public int Fonte { get; set; }
-    public int Protsini { get; set; }
-    public int Dac { get; set; }
-    public int CodFase { get; set; }
-    public int CodEvento { get; set; }
-    public int NumOcorrSiniaco { get; set; }
-    public DateTime DataInivigRefaev { get; set; }
-    public DateTime DataAberturaSifa { get; set; }
-    public DateTime DataFechaSifa { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public int DiasAberta { get; set; }
-}
