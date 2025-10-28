@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/ErrorResponse.json",
+  "title": "Error Response",
+  "description": "Resposta padrão de erro para todas as operações da API",
+  "type": "object",
+  "required": ["sucesso", "codigoErro", "mensagem", "detalhes", "timestamp"],
+  "properties": {
+    "sucesso": {
+      "type": "boolean",
+      "const": false,
+      "description": "Sempre false para respostas de erro",
+      "examples": [false]
+    },
+    "codigoErro": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "pattern": "^[A-Z_0-9]+$",
+      "description": "Código de erro para identificação programática",
+      "examples": [
+        "SINISTRO_NAO_ENCONTRADO",
+        "VALIDACAO_001",
+        "VALIDACAO_TIPO_PAGAMENTO",
+        "VALIDACAO_FAVORECIDO",
+        "VALIDACAO_SALDO",
+        "VALIDACAO_EXTERNA_FALHOU",
+        "NAO_AUTORIZADO",
+        "ERRO_INTERNO"
+      ]
+    },
+    "mensagem": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Mensagem de erro em português para exibição ao usuário",
+      "examples": [
+        "DOCUMENTO 001/0123456-7 NAO CADASTRADO",
+        "Tipo de pagamento deve ser 1, 2, 3, 4 ou 5",
+        "Favorecido é obrigatório para este tipo de seguro",
+        "Valor total excede o saldo pendente",
+        "Validação de produto consórcio falhou",
+        "Token de autenticação inválido ou expirado",
+        "Erro inesperado ao processar a requisição"
+      ]
+    },
+    "detalhes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "description": "Lista de detalhes adicionais sobre o erro",
+      "examples": [
+        [],
+        [
+          "Informe fonte + protsini + dac, OU",
+          "Informe orgsin + rmosin + numsin, OU",
+          "Informe codlider + sinlid"
+        ],
+        [
+          "Valor informado: 9"
+        ],
+        [
+          "tpsegu = 1, favorecido não pode ser vazio"
+        ],
+        [
+          "Saldo pendente: R$ 35.000,00",
+          "Valor solicitado: R$ 50.000,00"
+        ],
+        [
+          "Serviço: CNOUA",
+          "Código de erro: EZERT8 != '00000000'",
+          "Mensagem: Contrato inválido ou cancelado"
+        ],
+        [
+          "Forneça um token JWT válido no header Authorization"
+        ],
+        [
+          "Entre em contato com o suporte técnico"
+        ]
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o erro ocorreu (ISO 8601)",
+      "examples": ["2025-10-23T12:00:00Z"]
+    },
+    "traceId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID de rastreamento para correlação de logs (opcional)",
+      "examples": ["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
+    },
+    "path": {
+      "type": "string",
+      "description": "Path da requisição que gerou o erro (opcional)",
+      "examples": ["/api/claims/search", "/api/claims/1/10/20/789012/authorize-payment"]
+    },
+    "metodo": {
+      "type": "string",
+      "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "description": "Método HTTP da requisição (opcional)",
+      "examples": ["POST"]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "sucesso": false,
+      "codigoErro": "SINISTRO_NAO_ENCONTRADO",
+      "mensagem": "DOCUMENTO 001/0123456-7 NAO CADASTRADO",
+      "detalhes": [],
+      "timestamp": "2025-10-23T12:00:00Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "VALIDACAO_001",
+      "mensagem": "Pelo menos um critério completo de pesquisa deve ser informado",
+      "detalhes": [
+        "Informe fonte + protsini + dac, OU",
+        "Informe orgsin + rmosin + numsin, OU",
+        "Informe codlider + sinlid"
+      ],
+      "timestamp": "2025-10-23T12:00:00Z",
+      "path": "/api/claims/search",
+      "metodo": "POST"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "VALIDACAO_TIPO_PAGAMENTO",
+      "mensagem": "Tipo de pagamento deve ser 1, 2, 3, 4 ou 5",
+      "detalhes": [
+        "Valor informado: 9"
+      ],
+      "timestamp": "2025-10-23T14:30:15Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "VALIDACAO_FAVORECIDO",
+      "mensagem": "Favorecido é obrigatório para este tipo de seguro",
+      "detalhes": [
+        "tpsegu = 1, favorecido não pode ser vazio"
+      ],
+      "timestamp": "2025-10-23T14:30:15Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "VALIDACAO_SALDO",
+      "mensagem": "Valor total excede o saldo pendente",
+      "detalhes": [
+        "Saldo pendente: R$ 35.000,00",
+        "Valor solicitado: R$ 50.000,00"
+      ],
+      "timestamp": "2025-10-23T14:30:15Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "VALIDACAO_EXTERNA_FALHOU",
+      "mensagem": "Validação de produto consórcio falhou",
+      "detalhes": [
+        "Serviço: CNOUA",
+        "Código de erro: EZERT8 != '00000000'",
+        "Mensagem: Contrato inválido ou cancelado"
+      ],
+      "timestamp": "2025-10-23T14:30:15Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "NAO_AUTORIZADO",
+      "mensagem": "Token de autenticação inválido ou expirado",
+      "detalhes": [
+        "Forneça um token JWT válido no header Authorization"
+      ],
+      "timestamp": "2025-10-23T12:00:00Z"
+    },
+    {
+      "sucesso": false,
+      "codigoErro": "ERRO_INTERNO",
+      "mensagem": "Erro inesperado ao processar a requisição",
+      "detalhes": [
+        "Entre em contato com o suporte técnico"
+      ],
+      "timestamp": "2025-10-23T12:00:00Z",
+      "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+  ]
+}

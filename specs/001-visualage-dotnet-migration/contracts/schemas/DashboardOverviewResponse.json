@@ -1,0 +1,393 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/DashboardOverviewResponse.json",
+  "title": "Dashboard Overview Response",
+  "description": "Resposta contendo visão geral do dashboard de migração do projeto Visual Age para .NET 9",
+  "type": "object",
+  "required": [
+    "sucesso",
+    "progressoGeral",
+    "statusUserStories",
+    "componentesMigrados",
+    "saudeDoSistema",
+    "ultimaAtualizacao"
+  ],
+  "properties": {
+    "sucesso": {
+      "type": "boolean",
+      "description": "Indica se a operação foi bem-sucedida",
+      "examples": [true]
+    },
+    "progressoGeral": {
+      "$ref": "#/definitions/OverallProgress"
+    },
+    "statusUserStories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/UserStoryStatus"
+      },
+      "description": "Lista de user stories com seus status"
+    },
+    "componentesMigrados": {
+      "$ref": "#/definitions/ComponentsSummary"
+    },
+    "saudeDoSistema": {
+      "$ref": "#/definitions/SystemHealth"
+    },
+    "ultimaAtualizacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da última atualização do dashboard (ISO 8601)",
+      "examples": ["2025-10-23T14:30:00Z"]
+    }
+  },
+  "definitions": {
+    "OverallProgress": {
+      "type": "object",
+      "required": [
+        "percentualCompleto",
+        "userStoriesCompletas",
+        "userStoriesTotal",
+        "requisitosCompletos",
+        "requisitosTotal",
+        "testesAprovados",
+        "testesTotal",
+        "coberturaCodigo"
+      ],
+      "properties": {
+        "percentualCompleto": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "multipleOf": 0.1,
+          "description": "Percentual geral de conclusão do projeto",
+          "examples": [65.5]
+        },
+        "userStoriesCompletas": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número de user stories completadas",
+          "examples": [4]
+        },
+        "userStoriesTotal": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total de user stories",
+          "examples": [6]
+        },
+        "requisitosCompletos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número de requisitos funcionais completos",
+          "examples": [36]
+        },
+        "requisitosTotal": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total de requisitos funcionais",
+          "examples": [55]
+        },
+        "testesAprovados": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número de testes aprovados",
+          "examples": [142]
+        },
+        "testesTotal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total de testes",
+          "examples": [200]
+        },
+        "coberturaCodigo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "multipleOf": 0.1,
+          "description": "Cobertura de código em percentual",
+          "examples": [78.5]
+        }
+      },
+      "additionalProperties": false
+    },
+    "UserStoryStatus": {
+      "type": "object",
+      "required": [
+        "codigo",
+        "nome",
+        "status",
+        "percentualCompleto",
+        "requisitosCompletos",
+        "requisitosTotal",
+        "testesAprovados",
+        "testesTotal",
+        "responsavel",
+        "dataInicio",
+        "dataEstimada"
+      ],
+      "properties": {
+        "codigo": {
+          "type": "string",
+          "pattern": "^US-\\d{3}$",
+          "description": "Código da user story",
+          "examples": ["US-001"]
+        },
+        "nome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Nome da user story",
+          "examples": ["Pesquisar e recuperar sinistro"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["NotStarted", "InProgress", "Completed", "Blocked"],
+          "description": "Status atual da user story",
+          "examples": ["Completed"]
+        },
+        "percentualCompleto": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "multipleOf": 0.1,
+          "description": "Percentual de conclusão",
+          "examples": [100.0]
+        },
+        "requisitosCompletos": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Requisitos completos",
+          "examples": [5]
+        },
+        "requisitosTotal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total de requisitos",
+          "examples": [5]
+        },
+        "testesAprovados": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Testes aprovados",
+          "examples": [15]
+        },
+        "testesTotal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total de testes",
+          "examples": [15]
+        },
+        "responsavel": {
+          "type": "string",
+          "description": "Nome do responsável pela user story",
+          "examples": ["Maria Silva"]
+        },
+        "dataInicio": {
+          "type": "string",
+          "format": "date",
+          "description": "Data de início (ISO 8601 date)",
+          "examples": ["2025-09-01"]
+        },
+        "dataEstimada": {
+          "type": "string",
+          "format": "date",
+          "description": "Data estimada de conclusão",
+          "examples": ["2025-09-15"]
+        },
+        "dataConclusao": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Data de conclusão real (null se não concluída)",
+          "examples": ["2025-09-14", null]
+        },
+        "bloqueios": {
+          "type": ["string", "null"],
+          "maxLength": 500,
+          "description": "Descrição de bloqueios se houver",
+          "examples": ["Aguardando validação de serviço CNOUA", null]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentsSummary": {
+      "type": "object",
+      "required": ["telas", "regrasNegocio", "integracoesBD", "servicosExternos"],
+      "properties": {
+        "telas": {
+          "$ref": "#/definitions/ComponentTypeStats"
+        },
+        "regrasNegocio": {
+          "$ref": "#/definitions/ComponentTypeStats"
+        },
+        "integracoesBD": {
+          "$ref": "#/definitions/ComponentTypeStats"
+        },
+        "servicosExternos": {
+          "$ref": "#/definitions/ComponentTypeStats"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentTypeStats": {
+      "type": "object",
+      "required": ["total", "completas", "emProgresso", "percentual"],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total de componentes deste tipo",
+          "examples": [42]
+        },
+        "completas": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Componentes completos",
+          "examples": [30]
+        },
+        "emProgresso": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Componentes em progresso",
+          "examples": [8]
+        },
+        "percentual": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "multipleOf": 0.1,
+          "description": "Percentual completo",
+          "examples": [71.4]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SystemHealth": {
+      "type": "object",
+      "required": [
+        "apiDisponivel",
+        "bancoConectado",
+        "cnouaDisponivel",
+        "sipuaDisponivel",
+        "simdaDisponivel",
+        "ultimaVerificacao"
+      ],
+      "properties": {
+        "apiDisponivel": {
+          "type": "boolean",
+          "description": "API REST está disponível",
+          "examples": [true]
+        },
+        "bancoConectado": {
+          "type": "boolean",
+          "description": "Banco de dados está conectado",
+          "examples": [true]
+        },
+        "cnouaDisponivel": {
+          "type": "boolean",
+          "description": "Serviço CNOUA (validação consórcio) está disponível",
+          "examples": [true]
+        },
+        "sipuaDisponivel": {
+          "type": "boolean",
+          "description": "Serviço SIPUA (validação EFP) está disponível",
+          "examples": [false]
+        },
+        "simdaDisponivel": {
+          "type": "boolean",
+          "description": "Serviço SIMDA (validação HB) está disponível",
+          "examples": [true]
+        },
+        "ultimaVerificacao": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data/hora da última verificação de saúde (ISO 8601)",
+          "examples": ["2025-10-23T14:30:00Z"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "sucesso": true,
+      "progressoGeral": {
+        "percentualCompleto": 65.5,
+        "userStoriesCompletas": 4,
+        "userStoriesTotal": 6,
+        "requisitosCompletos": 36,
+        "requisitosTotal": 55,
+        "testesAprovados": 142,
+        "testesTotal": 200,
+        "coberturaCodigo": 78.5
+      },
+      "statusUserStories": [
+        {
+          "codigo": "US-001",
+          "nome": "Pesquisar e recuperar sinistro",
+          "status": "Completed",
+          "percentualCompleto": 100.0,
+          "requisitosCompletos": 5,
+          "requisitosTotal": 5,
+          "testesAprovados": 15,
+          "testesTotal": 15,
+          "responsavel": "Maria Silva",
+          "dataInicio": "2025-09-01",
+          "dataEstimada": "2025-09-15",
+          "dataConclusao": "2025-09-14",
+          "bloqueios": null
+        },
+        {
+          "codigo": "US-002",
+          "nome": "Autorizar pagamento de sinistro",
+          "status": "InProgress",
+          "percentualCompleto": 75.0,
+          "requisitosCompletos": 9,
+          "requisitosTotal": 12,
+          "testesAprovados": 25,
+          "testesTotal": 35,
+          "responsavel": "João Santos",
+          "dataInicio": "2025-09-10",
+          "dataEstimada": "2025-10-10",
+          "dataConclusao": null,
+          "bloqueios": "Aguardando validação de serviço CNOUA"
+        }
+      ],
+      "componentesMigrados": {
+        "telas": {
+          "total": 2,
+          "completas": 2,
+          "emProgresso": 0,
+          "percentual": 100.0
+        },
+        "regrasNegocio": {
+          "total": 42,
+          "completas": 30,
+          "emProgresso": 8,
+          "percentual": 71.4
+        },
+        "integracoesBD": {
+          "total": 10,
+          "completas": 8,
+          "emProgresso": 2,
+          "percentual": 80.0
+        },
+        "servicosExternos": {
+          "total": 3,
+          "completas": 1,
+          "emProgresso": 2,
+          "percentual": 33.3
+        }
+      },
+      "saudeDoSistema": {
+        "apiDisponivel": true,
+        "bancoConectado": true,
+        "cnouaDisponivel": true,
+        "sipuaDisponivel": false,
+        "simdaDisponivel": true,
+        "ultimaVerificacao": "2025-10-23T14:30:00Z"
+      },
+      "ultimaAtualizacao": "2025-10-23T14:30:00Z"
+    }
+  ]
+}

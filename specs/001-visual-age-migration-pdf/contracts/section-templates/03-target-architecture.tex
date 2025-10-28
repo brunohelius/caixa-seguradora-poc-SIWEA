@@ -1,0 +1,16 @@
+% Target Architecture Section
+\section{Clean Architecture}
+{{ clean_architecture_description }}
+
+\architecturediagram{clean-architecture-onion}{Arquitetura Onion proposta}
+
+\section{Stack Tecnológico}
+\subsection{Backend}
+{% for tech in technology_stack.backend %}
+    \item {{ tech }}
+{% endfor %}
+
+\subsection{Frontend}
+{% for tech in technology_stack.frontend %}
+    \item {{ tech }}
+{% endfor %}

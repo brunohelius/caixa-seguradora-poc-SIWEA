@@ -1,0 +1,36 @@
+@startuml
+!theme plain
+title Payment Authorization Sequence Diagram
+
+actor Operator
+participant "React UI" as UI
+participant "API Gateway" as Gateway
+participant "Auth Service" as Auth
+participant "Claims API" as API
+participant "Validation" as Valid
+participant "Database" as DB
+participant "Audit Log" as Audit
+
+Operator -> UI: Enter claim search
+UI -> Gateway: GET /api/claims/{id}
+Gateway -> Auth: Validate token
+Auth -> Gateway: Token valid
+Gateway -> API: Get claim
+API -> DB: SELECT from TMESTSIN
+DB -> API: Claim data
+API -> UI: Return claim
+
+Operator -> UI: Enter payment details
+UI -> Gateway: POST /api/payments
+Gateway -> API: Create payment
+API -> Valid: Validate business rules
+Valid -> API: Rules passed
+API -> DB: BEGIN TRANSACTION
+API -> DB: INSERT into THISTSIN
+API -> DB: UPDATE TMESTSIN
+API -> DB: INSERT into SI_SINISTRO_FASE
+API -> DB: COMMIT
+API -> Audit: Log transaction
+API -> UI: Payment authorized
+
+@enduml

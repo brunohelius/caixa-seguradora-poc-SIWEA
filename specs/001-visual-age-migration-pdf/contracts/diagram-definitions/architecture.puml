@@ -1,0 +1,41 @@
+@startuml
+!theme plain
+title Visual Age Migration - High-Level Architecture
+
+package "Presentation Layer" {
+    [React 19 SPA]
+    [Mobile App]
+}
+
+package "API Gateway" {
+    [Azure API Management]
+}
+
+package "Application Layer" {
+    [.NET 9 Web API]
+    [SOAP Endpoints]
+}
+
+package "Domain Layer" {
+    [Business Rules]
+    [Domain Services]
+    [Validators]
+}
+
+package "Infrastructure Layer" {
+    [Entity Framework Core]
+    [External Services]
+    database "SQL Server"
+}
+
+[React 19 SPA] --> [Azure API Management]
+[Mobile App] --> [Azure API Management]
+[Azure API Management] --> [.NET 9 Web API]
+[Azure API Management] --> [SOAP Endpoints]
+[.NET 9 Web API] --> [Business Rules]
+[SOAP Endpoints] --> [Business Rules]
+[Business Rules] --> [Domain Services]
+[Domain Services] --> [Entity Framework Core]
+[Entity Framework Core] --> [SQL Server]
+
+@enduml

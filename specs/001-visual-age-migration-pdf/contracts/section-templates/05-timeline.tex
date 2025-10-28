@@ -1,0 +1,9 @@
+% Project Timeline Section
+\section{Fases do Projeto}
+{% for phase in timeline_phases %}
+\subsection{{{ phase.title }}}
+Duração: {{ phase.duration }}
+{% endfor %}
+
+\section{Marcos Principais}
+{{ milestones_description }}

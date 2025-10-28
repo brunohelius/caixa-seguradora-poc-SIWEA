@@ -1,0 +1,149 @@
+% Preamble for Visual Age Migration Analysis & Planning Document
+% Contains all package definitions and configurations
+
+% Basic packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+
+% Page layout
+\usepackage[
+    top=25mm,
+    bottom=25mm,
+    left=20mm,
+    right=20mm,
+    headheight=15pt
+]{geometry}
+
+% Typography
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.5}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% Graphics
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subfigure}
+\graphicspath{{../../contracts/assets/}{../../output/diagrams/}}
+
+% Colors
+\usepackage{xcolor}
+
+% Headers and footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+
+% Header configuration
+\fancyhead[L]{\includegraphics[height=10mm]{{{ logo_path }}}}
+\fancyhead[C]{{\small\textit{{{ document_title }}}}}
+\fancyhead[R]{{\small Versão {{ document_version }}}}
+
+% Footer configuration
+\fancyfoot[L]{{\small Página \thepage\ de \pageref{LastPage}}}
+\fancyfoot[C]{{\small\color{gray}{{ confidentiality }}}}
+\fancyfoot[R]{{\small\today}}
+
+% Hyperlinks
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=caixablue,
+    filecolor=caixablue,
+    urlcolor=caixablue,
+    citecolor=caixablue,
+    bookmarks=true,
+    bookmarksopen=true,
+    bookmarksnumbered=true
+}
+
+% Numbers and units
+\usepackage{siunitx}
+\sisetup{
+    output-decimal-marker = {,},
+    group-separator = {.},
+    group-minimum-digits = 4,
+    currency-symbol-before = {R\$},
+    currency-symbol-after = {}
+}
+
+% Code listings
+\usepackage{listings}
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{caixablue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{caixagreen},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    frameround=tttt,
+    backgroundcolor=\color{gray!5},
+    showstringspaces=false,
+    captionpos=b
+}
+
+% Gantt charts
+\usepackage{pgfgantt}
+\ganttset{
+    canvas/.style={draw=black!50, line width=.75pt},
+    bar/.style={draw=caixablue, fill=caixablue!50},
+    milestone/.style={draw=caixared, fill=caixared},
+    group/.style={draw=black, fill=black!30},
+    today rule/.style={draw=caixagreen, line width=2pt}
+}
+
+% Captions
+\usepackage{caption}
+\captionsetup{
+    labelfont=bf,
+    textfont=it,
+    format=plain,
+    justification=centering,
+    singlelinecheck=false
+}
+
+% Last page reference
+\usepackage{lastpage}
+
+% Footnotes
+\usepackage{footnote}
+\makesavenoteenv{tabular}
+\makesavenoteenv{table}
+
+% Spacing
+\usepackage{parskip}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+% Lists
+\usepackage{enumitem}
+\setlist{noitemsep, topsep=3pt}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Placeholder text (for development)
+\usepackage{lipsum}
+
+% Custom commands
+\newcommand{\requirement}[2]{\textbf{#1}: #2}
+\newcommand{\userstory}[3]{\subsection{#1 - #2 (#3)}}
+\newcommand{\risk}[3]{\textbf{#1} \textcolor{#2}{[#3]}}
+\newcommand{\milestone}[2]{\textbf{M#1}: #2}
+
+% Acronyms and glossary
+\usepackage[acronym,toc]{glossaries}
+\makeglossaries

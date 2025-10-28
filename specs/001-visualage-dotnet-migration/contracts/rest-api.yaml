@@ -1,0 +1,2110 @@
+openapi: 3.0.3
+info:
+  title: Caixa Seguradora Claims System API
+  description: |
+    API REST para o Sistema de Autorização de Pagamento de Indenizações de Sinistros (SIWEA)
+
+    Migração do sistema legado IBM Visual Age EZEE para .NET 9 com React frontend.
+
+    **Funcionalidades principais:**
+    - Pesquisa de sinistros por protocolo, número de sinistro ou código líder
+    - Autorização de pagamentos de indenização
+    - Consulta de histórico de pagamentos
+    - Gestão de fases de processamento
+    - Dashboard de status de migração
+
+    **Autenticação:** JWT Bearer Token
+
+    **Idioma:** Português (Brasil)
+  version: 1.0.0
+  contact:
+    name: Caixa Seguradora - Equipe de TI
+    email: ti@caixaseguradora.com.br
+  license:
+    name: Proprietário
+
+servers:
+  - url: https://api.caixaseguradora.com.br/v1
+    description: Servidor de Produção
+  - url: https://api-hom.caixaseguradora.com.br/v1
+    description: Servidor de Homologação
+  - url: https://localhost:5001/v1
+    description: Servidor de Desenvolvimento Local
+
+tags:
+  - name: claims
+    description: Operações relacionadas a sinistros
+  - name: payment
+    description: Operações de autorização de pagamento
+  - name: history
+    description: Histórico de transações
+  - name: phases
+    description: Fases de processamento de sinistros
+  - name: dashboard
+    description: Dashboard de migração e métricas
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/claims/search:
+    post:
+      tags:
+        - claims
+      summary: Pesquisar sinistros
+      description: |
+        Pesquisa sinistros usando um dos três critérios mutuamente exclusivos:
+        1. Número de protocolo (fonte + protsini + dac)
+        2. Número de sinistro (orgsin + rmosin + numsin)
+        3. Código líder + sinistro líder (codlider + sinlid)
+
+        **Regras de negócio:**
+        - Pelo menos um critério completo deve ser informado
+        - Retorna erro se o sinistro não for encontrado
+        - Calcula valor pendente (sdopag - totpag)
+      operationId: searchClaims
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimSearchRequest'
+            examples:
+              searchByProtocol:
+                summary: Pesquisa por número de protocolo
+                value:
+                  fonte: 1
+                  protsini: 123456
+                  dac: 7
+              searchByClaimNumber:
+                summary: Pesquisa por número de sinistro
+                value:
+                  orgsin: 10
+                  rmosin: 20
+                  numsin: 789012
+              searchByLeaderCode:
+                summary: Pesquisa por código líder
+                value:
+                  codlider: 5
+                  sinlid: 999888
+      responses:
+        '200':
+          description: Sinistro encontrado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimSearchResponse'
+              example:
+                sucesso: true
+                sinistro:
+                  tipseg: 1
+                  orgsin: 10
+                  rmosin: 20
+                  numsin: 789012
+                  fonte: 1
+                  protsini: 123456
+                  dac: 7
+                  numeroProtocolo: "001/0123456-7"
+                  numeroSinistro: "10/20/789012"
+                  orgapo: 10
+                  rmoapo: 20
+                  numapol: 555666
+                  numeroApolice: "10/20/555666"
+                  nomeRamo: "Vida Individual"
+                  nomeSeguradora: "João da Silva Santos"
+                  codprodu: 1001
+                  nomeProduto: "Vida Total Premium"
+                  sdopag: 50000.00
+                  totpag: 15000.00
+                  valorPendente: 35000.00
+                  codlider: null
+                  sinlid: null
+                  ocorhist: 3
+                  tipreg: "1"
+                  tpsegu: 1
+                  ehConsorcio: false
+                  criadoPor: "operador.sistema"
+                  criadoEm: "2025-01-15T10:30:00Z"
+                  atualizadoPor: "operador.sistema"
+                  atualizadoEm: "2025-10-20T14:22:00Z"
+        '400':
+          description: Requisição inválida - critérios de pesquisa incompletos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                sucesso: false
+                codigoErro: "VALIDACAO_001"
+                mensagem: "Pelo menos um critério completo de pesquisa deve ser informado"
+                detalhes:
+                  - "Informe fonte + protsini + dac, OU"
+                  - "Informe orgsin + rmosin + numsin, OU"
+                  - "Informe codlider + sinlid"
+                timestamp: "2025-10-23T12:00:00Z"
+        '404':
+          description: Sinistro não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                sucesso: false
+                codigoErro: "SINISTRO_NAO_ENCONTRADO"
+                mensagem: "DOCUMENTO 001/0123456-7 NAO CADASTRADO"
+                detalhes: []
+                timestamp: "2025-10-23T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/claims/{tipseg}/{orgsin}/{rmosin}/{numsin}:
+    get:
+      tags:
+        - claims
+      summary: Buscar sinistro por ID
+      description: |
+        Retorna informações detalhadas de um sinistro específico usando sua chave primária composta.
+
+        **Parâmetros:**
+        - tipseg: Tipo de seguro
+        - orgsin: Órgão do sinistro
+        - rmosin: Ramo do sinistro
+        - numsin: Número do sinistro
+      operationId: getClaimById
+      parameters:
+        - name: tipseg
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Tipo de Seguro
+        - name: orgsin
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Órgão do Sinistro
+        - name: rmosin
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Ramo do Sinistro
+        - name: numsin
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Número do Sinistro
+      responses:
+        '200':
+          description: Sinistro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDetailResponse'
+        '404':
+          description: Sinistro não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/claims/{tipseg}/{orgsin}/{rmosin}/{numsin}/authorize-payment:
+    post:
+      tags:
+        - payment
+      summary: Autorizar pagamento de indenização
+      description: |
+        Cria uma autorização de pagamento de indenização para um sinistro.
+
+        **Regras de negócio:**
+        - Tipo de pagamento: deve ser 1, 2, 3, 4 ou 5
+        - Valor principal: obrigatório, numérico, positivo
+        - Valor de correção: opcional, numérico
+        - Favorecido: obrigatório se tpsegu != 0, opcional se tpsegu = 0
+        - Tipo de apólice: deve ser '1' ou '2'
+        - Sistema registra código de operação 1098
+        - Incrementa contador de ocorrências (ocorhist)
+        - Converte valores para BTNF usando taxas de TGEUNIMO
+        - Cria registro em THISTSIN e SI_ACOMPANHA_SINI
+        - Atualiza fases em SI_SINISTRO_FASE
+        - Valida produtos consórcio (6814, 7701, 7709) via CNOUA
+        - Valida contratos EFP via SIPUA ou HB via SIMDA
+
+        **Fluxo de validação externa (T095):**
+        1. **Produtos consórcio (6814, 7701, 7709)**: Roteados automaticamente para validação CNOUA
+           - Valida contrato de consórcio ativo
+           - Verifica status da cota
+           - Confirma contemplação do participante
+           - Retorna código EZERT8 (00000000 = sucesso)
+
+        2. **Contratos EFP**: Produtos com NUM_CONTRATO > 0 em EF_CONTR_SEG_HABIT
+           - Roteados para validação SIPUA
+           - Valida contrato habitacional EFP
+           - Confirma elegibilidade
+
+        3. **Contratos HB**: Produtos com NUM_CONTRATO = 0 ou ausentes em EF_CONTR_SEG_HABIT
+           - Roteados para validação SIMDA
+           - Valida contrato habitacional HB
+           - Confirma cobertura
+
+        4. **Outros produtos**: Sem validação externa, apenas regras internas
+      operationId: authorizePayment
+      parameters:
+        - name: tipseg
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: orgsin
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: rmosin
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: numsin
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentAuthorizationRequest'
+            example:
+              tipoPagamento: 1
+              valorPrincipal: 25000.00
+              valorCorrecao: 1250.50
+              favorecido: "João da Silva Santos"
+              tipoApolice: "1"
+              observacoes: "Pagamento de indenização integral"
+      responses:
+        '201':
+          description: Pagamento autorizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAuthorizationResponse'
+              example:
+                sucesso: true
+                mensagem: "Pagamento autorizado com sucesso"
+                autorizacao:
+                  tipseg: 1
+                  orgsin: 10
+                  rmosin: 20
+                  numsin: 789012
+                  ocorhist: 4
+                  operacao: 1098
+                  dtmovto: "2025-10-23"
+                  horaoper: "14:30:15"
+                  valpri: 25000.00
+                  crrmon: 1250.50
+                  nomfav: "João da Silva Santos"
+                  tipcrr: "5"
+                  valpribt: 27500.00
+                  crrmonbt: 1375.55
+                  valtotbt: 28875.55
+                  sitcontb: "0"
+                  situacao: "0"
+                  ezeusrid: "operador.sistema"
+                  valorPendenteAtualizado: 8124.45
+                dataCriacao: "2025-10-23T14:30:15Z"
+        '400':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPaymentType:
+                  summary: Tipo de pagamento inválido
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_TIPO_PAGAMENTO"
+                    mensagem: "Tipo de pagamento deve ser 1, 2, 3, 4 ou 5"
+                    detalhes:
+                      - "Valor informado: 9"
+                    timestamp: "2025-10-23T14:30:15Z"
+                missingBeneficiary:
+                  summary: Favorecido obrigatório
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_FAVORECIDO"
+                    mensagem: "Favorecido é obrigatório para este tipo de seguro"
+                    detalhes:
+                      - "tpsegu = 1, favorecido não pode ser vazio"
+                    timestamp: "2025-10-23T14:30:15Z"
+                insufficientBalance:
+                  summary: Valor excede saldo pendente
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_SALDO"
+                    mensagem: "Valor total excede o saldo pendente"
+                    detalhes:
+                      - "Saldo pendente: R$ 35.000,00"
+                      - "Valor solicitado: R$ 50.000,00"
+                    timestamp: "2025-10-23T14:30:15Z"
+        '404':
+          description: Sinistro não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Erro de validação externa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                cnouaValidationFailure:
+                  summary: Validação CNOUA falhou (Produto Consórcio)
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_EXTERNA_FALHOU"
+                    mensagem: "Validação de produto consórcio falhou"
+                    detalhes:
+                      - "Serviço: CNOUA"
+                      - "Código EZERT8: EZERT8002"
+                      - "Mensagem: Contrato cancelado"
+                      - "Produto: 6814"
+                    timestamp: "2025-10-23T14:30:15Z"
+                cnouaContractInvalid:
+                  summary: Contrato de consórcio inválido (EZERT8001)
+                  value:
+                    sucesso: false
+                    codigoErro: "EZERT8001"
+                    mensagem: "Contrato de consórcio inválido"
+                    detalhes:
+                      - "Serviço: CNOUA"
+                      - "Verifique o número do contrato e tente novamente"
+                    timestamp: "2025-10-23T14:30:15Z"
+                cnouaGroupClosed:
+                  summary: Grupo de consórcio encerrado (EZERT8003)
+                  value:
+                    sucesso: false
+                    codigoErro: "EZERT8003"
+                    mensagem: "Grupo encerrado"
+                    detalhes:
+                      - "Serviço: CNOUA"
+                      - "O grupo de consórcio foi encerrado e não aceita mais pagamentos"
+                    timestamp: "2025-10-23T14:30:15Z"
+                sipuaValidationFailure:
+                  summary: Validação SIPUA falhou (Contrato EFP)
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_EXTERNA_FALHOU"
+                    mensagem: "Validação de contrato EFP falhou"
+                    detalhes:
+                      - "Serviço: SIPUA"
+                      - "Contrato não encontrado ou inativo"
+                    timestamp: "2025-10-23T14:30:15Z"
+                simdaValidationFailure:
+                  summary: Validação SIMDA falhou (Contrato HB)
+                  value:
+                    sucesso: false
+                    codigoErro: "VALIDACAO_EXTERNA_FALHOU"
+                    mensagem: "Validação de contrato HB falhou"
+                    detalhes:
+                      - "Serviço: SIMDA"
+                      - "Cobertura insuficiente para o valor solicitado"
+                    timestamp: "2025-10-23T14:30:15Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/claims/{tipseg}/{orgsin}/{rmosin}/{numsin}/history:
+    get:
+      tags:
+        - history
+      summary: Consultar histórico de pagamentos
+      description: |
+        Retorna o histórico completo de autorizações de pagamento para um sinistro.
+
+        Ordenado por número de ocorrência (ocorhist) em ordem decrescente (mais recente primeiro).
+      operationId: getClaimHistory
+      parameters:
+        - name: tipseg
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: orgsin
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: rmosin
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: numsin
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Número da página (paginação)
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+          description: Tamanho da página
+      responses:
+        '200':
+          description: Histórico recuperado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimHistoryResponse'
+              example:
+                sucesso: true
+                totalRegistros: 3
+                paginaAtual: 1
+                tamanhoPagina: 20
+                totalPaginas: 1
+                historico:
+                  - tipseg: 1
+                    orgsin: 10
+                    rmosin: 20
+                    numsin: 789012
+                    ocorhist: 4
+                    operacao: 1098
+                    dtmovto: "2025-10-23"
+                    horaoper: "14:30:15"
+                    dataHoraFormatada: "23/10/2025 14:30:15"
+                    valpri: 25000.00
+                    crrmon: 1250.50
+                    nomfav: "João da Silva Santos"
+                    tipcrr: "5"
+                    valpribt: 27500.00
+                    crrmonbt: 1375.55
+                    valtotbt: 28875.55
+                    sitcontb: "0"
+                    situacao: "0"
+                    ezeusrid: "operador.sistema"
+                  - tipseg: 1
+                    orgsin: 10
+                    rmosin: 20
+                    numsin: 789012
+                    ocorhist: 3
+                    operacao: 1098
+                    dtmovto: "2025-09-15"
+                    horaoper: "10:15:30"
+                    dataHoraFormatada: "15/09/2025 10:15:30"
+                    valpri: 10000.00
+                    crrmon: 500.00
+                    nomfav: "João da Silva Santos"
+                    tipcrr: "5"
+                    valpribt: 11000.00
+                    crrmonbt: 550.00
+                    valtotbt: 11550.00
+                    sitcontb: "0"
+                    situacao: "0"
+                    ezeusrid: "operador.anterior"
+                  - tipseg: 1
+                    orgsin: 10
+                    rmosin: 20
+                    numsin: 789012
+                    ocorhist: 2
+                    operacao: 1098
+                    dtmovto: "2025-08-10"
+                    horaoper: "16:45:00"
+                    dataHoraFormatada: "10/08/2025 16:45:00"
+                    valpri: 5000.00
+                    crrmon: 0.00
+                    nomfav: "João da Silva Santos"
+                    tipcrr: "5"
+                    valpribt: 5500.00
+                    crrmonbt: 0.00
+                    valtotbt: 5500.00
+                    sitcontb: "0"
+                    situacao: "0"
+                    ezeusrid: "operador.anterior"
+        '404':
+          description: Sinistro não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/claims/{fonte}/{protsini}/{dac}/phases:
+    get:
+      tags:
+        - phases
+      summary: Consultar fases de processamento
+      description: |
+        Retorna as fases de processamento de um sinistro identificado por protocolo.
+
+        **Workflow de fases (T110):**
+
+        As fases são gerenciadas automaticamente com base em eventos de negócio:
+
+        1. **Abertura de fase**: Quando um evento é registrado (ex: pagamento autorizado)
+           - Sistema consulta SI_REL_FASE_EVENTO para identificar fase associada ao evento
+           - Se ind_alteracao_fase = '1': cria nova fase com data_fecha_sifa = 9999-12-31
+           - Previne duplicação: não cria se fase já existe aberta
+
+        2. **Fechamento de fase**: Quando evento de encerramento é registrado
+           - Se ind_alteracao_fase = '2': atualiza fase aberta existente
+           - Define data_fecha_sifa = data do evento
+           - Calcula duração da fase (dias entre abertura e fechamento)
+
+        3. **Status computado**:
+           - **"Aberta"**: data_fecha_sifa = 9999-12-31
+           - **"Fechada"**: data_fecha_sifa != 9999-12-31
+
+        4. **Dias aberta (computed)**:
+           - Fase aberta: dias entre data_abertura_sifa e hoje
+           - Fase fechada: dias entre data_abertura_sifa e data_fecha_sifa
+
+        5. **Transação atômica**:
+           - Atualização de fases faz parte da transação de autorização
+           - Se falhar: rollback de todo o ciclo (pagamento + histórico + fases)
+
+        6. **Ordenação**: Fases retornadas por data de abertura DESC (mais recente primeiro)
+
+        **Exemplos de eventos que acionam fases:**
+        - Evento 200: Abre fase "Autorização de Pagamento"
+        - Evento 201: Fecha fase "Autorização de Pagamento"
+        - Evento 100: Abre fase "Análise de Documentação"
+      operationId: getClaimPhases
+      parameters:
+        - name: fonte
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Fonte do protocolo
+        - name: protsini
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Número do protocolo
+        - name: dac
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Dígito verificador
+      responses:
+        '200':
+          description: Fases recuperadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimPhasesResponse'
+              example:
+                sucesso: true
+                protocolo: "001/0123456-7"
+                totalFases: 2
+                fases:
+                  - codFase: 10
+                    nomeFase: "Análise de Documentação"
+                    codEvento: 100
+                    nomeEvento: "Documentação Recebida"
+                    numOcorrSiniaco: 1
+                    dataInivigRefaev: "2025-01-01"
+                    dataAberturaSifa: "2025-08-10"
+                    dataFechaSifa: "2025-09-15"
+                    status: "Fechada"
+                    diasAberta: 36
+                  - codFase: 20
+                    nomeFase: "Autorização de Pagamento"
+                    codEvento: 200
+                    nomeEvento: "Pagamento Solicitado"
+                    numOcorrSiniaco: 2
+                    dataInivigRefaev: "2025-01-01"
+                    dataAberturaSifa: "2025-09-15"
+                    dataFechaSifa: "9999-12-31"
+                    status: "Aberta"
+                    diasAberta: 38
+        '404':
+          description: Protocolo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/dashboard/overview:
+    get:
+      tags:
+        - dashboard
+      summary: Visão geral do dashboard de migração
+      description: |
+        Retorna métricas agregadas do projeto de migração:
+        - Progresso geral (%)
+        - Status de user stories
+        - Componentes migrados
+        - Testes executados
+        - Performance comparativa
+      operationId: getDashboardOverview
+      responses:
+        '200':
+          description: Dashboard recuperado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardOverviewResponse'
+              example:
+                sucesso: true
+                progressoGeral:
+                  percentualCompleto: 65.5
+                  userStoriesCompletas: 4
+                  userStoriesTotal: 6
+                  requisitosCompletos: 36
+                  requisitosTotal: 55
+                  testesAprovados: 142
+                  testesTotal: 200
+                  coberturaCodigo: 78.5
+                statusUserStories:
+                  - codigo: "US-001"
+                    nome: "Pesquisar e recuperar sinistro"
+                    status: "Completed"
+                    percentualCompleto: 100.0
+                    requisitosCompletos: 5
+                    requisitosTotal: 5
+                    testesAprovados: 15
+                    testesTotal: 15
+                    responsavel: "Maria Silva"
+                    dataInicio: "2025-09-01"
+                    dataEstimada: "2025-09-15"
+                    dataConclusao: "2025-09-14"
+                    bloqueios: null
+                  - codigo: "US-002"
+                    nome: "Autorizar pagamento de sinistro"
+                    status: "In Progress"
+                    percentualCompleto: 75.0
+                    requisitosCompletos: 9
+                    requisitosTotal: 12
+                    testesAprovados: 25
+                    testesTotal: 35
+                    responsavel: "João Santos"
+                    dataInicio: "2025-09-10"
+                    dataEstimada: "2025-10-10"
+                    dataConclusao: null
+                    bloqueios: "Aguardando validação de serviço CNOUA"
+                componentesMigrados:
+                  telas:
+                    total: 2
+                    completas: 2
+                    emProgresso: 0
+                    percentual: 100.0
+                  regrasNegocio:
+                    total: 42
+                    completas: 30
+                    emProgresso: 8
+                    percentual: 71.4
+                  integracoesBD:
+                    total: 10
+                    completas: 8
+                    emProgresso: 2
+                    percentual: 80.0
+                  servicosExternos:
+                    total: 3
+                    completas: 1
+                    emProgresso: 2
+                    percentual: 33.3
+                saudeDoSistema:
+                  apiDisponivel: true
+                  bancoConectado: true
+                  cnouaDisponivel: true
+                  sipuaDisponivel: false
+                  simdaDisponivel: true
+                  ultimaVerificacao: "2025-10-23T14:30:00Z"
+                ultimaAtualizacao: "2025-10-23T14:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/dashboard/components:
+    get:
+      tags:
+        - dashboard
+      summary: Detalhes de componentes migrados
+      description: |
+        Lista detalhada de todos os componentes do sistema e seu status de migração.
+
+        Tipos de componentes:
+        - Screen (Telas)
+        - BusinessRule (Regras de negócio)
+        - DatabaseEntity (Entidades de banco de dados)
+        - ExternalService (Serviços externos)
+      operationId: getDashboardComponents
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [Screen, BusinessRule, DatabaseEntity, ExternalService]
+          description: Filtrar por tipo de componente
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [NotStarted, InProgress, Completed, Blocked]
+          description: Filtrar por status
+        - name: responsavel
+          in: query
+          schema:
+            type: string
+          description: Filtrar por desenvolvedor responsável
+      responses:
+        '200':
+          description: Componentes recuperados com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardComponentsResponse'
+              example:
+                sucesso: true
+                totalComponentes: 57
+                componentes:
+                  - id: "cmp-001"
+                    userStoryId: "US-001"
+                    tipo: "Screen"
+                    nome: "Tela de Pesquisa de Sinistros"
+                    referenciaLegado: "SIWEG.SIWMAP1"
+                    status: "Completed"
+                    horasEstimadas: 16.0
+                    horasReais: 14.5
+                    complexidade: "Medium"
+                    responsavel: "Maria Silva"
+                    notasTecnicas: "Migrado para React com hooks, validação implementada"
+                    dataInicio: "2025-09-01"
+                    dataConclusao: "2025-09-05"
+                  - id: "cmp-002"
+                    userStoryId: "US-002"
+                    tipo: "BusinessRule"
+                    nome: "Validação de tipo de pagamento"
+                    referenciaLegado: "SIWEA.VALIDA_TIPO_PAG"
+                    status: "Completed"
+                    horasEstimadas: 4.0
+                    horasReais: 3.5
+                    complexidade: "Low"
+                    responsavel: "João Santos"
+                    notasTecnicas: "Implementado como validator, testes unitários criados"
+                    dataInicio: "2025-09-10"
+                    dataConclusao: "2025-09-11"
+                  - id: "cmp-003"
+                    userStoryId: "US-002"
+                    tipo: "ExternalService"
+                    nome: "Integração CNOUA (Consórcio)"
+                    referenciaLegado: "SIWEA.CALL_CNOUA"
+                    status: "InProgress"
+                    horasEstimadas: 24.0
+                    horasReais: 18.0
+                    complexidade: "High"
+                    responsavel: "João Santos"
+                    notasTecnicas: "Aguardando endpoint de homologação do serviço CNOUA"
+                    dataInicio: "2025-09-20"
+                    dataConclusao: null
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/dashboard/performance:
+    get:
+      tags:
+        - dashboard
+      summary: Métricas de performance comparativas
+      description: |
+        Compara métricas de performance entre o sistema legado (Visual Age) e o novo sistema (.NET 9).
+
+        Métricas incluem:
+        - Tempo de resposta médio
+        - Throughput (requisições/segundo)
+        - Usuários concurrent suportados
+        - Uso de memória
+        - Taxa de erro
+      operationId: getDashboardPerformance
+      parameters:
+        - name: periodo
+          in: query
+          schema:
+            type: string
+            enum: [ultima-hora, ultimo-dia, ultima-semana, ultimo-mes]
+            default: ultimo-dia
+          description: Período de agregação de métricas
+      responses:
+        '200':
+          description: Métricas recuperadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardPerformanceResponse'
+              example:
+                sucesso: true
+                periodo: "ultimo-dia"
+                metricas:
+                  - tipo: "ResponseTime"
+                    nome: "Tempo de Resposta Médio (ms)"
+                    valorLegado: 2800.0
+                    valorNovo: 450.0
+                    unidade: "ms"
+                    melhoria: 83.9
+                    cenarioTeste: "Pesquisa de sinistro por protocolo"
+                    dataMetrica: "2025-10-23T14:00:00Z"
+                    aprovado: true
+                  - tipo: "Throughput"
+                    nome: "Requisições por Segundo"
+                    valorLegado: 50.0
+                    valorNovo: 250.0
+                    unidade: "req/s"
+                    melhoria: 400.0
+                    cenarioTeste: "Carga de 1000 usuários concorrentes"
+                    dataMetrica: "2025-10-23T14:00:00Z"
+                    aprovado: true
+                  - tipo: "ConcurrentUsers"
+                    nome: "Usuários Concorrentes Suportados"
+                    valorLegado: 100.0
+                    valorNovo: 1000.0
+                    unidade: "users"
+                    melhoria: 900.0
+                    cenarioTeste: "Teste de carga progressiva"
+                    dataMetrica: "2025-10-23T14:00:00Z"
+                    aprovado: true
+                  - tipo: "MemoryUsage"
+                    nome: "Uso de Memória Médio (MB)"
+                    valorLegado: 512.0
+                    valorNovo: 256.0
+                    unidade: "MB"
+                    melhoria: 50.0
+                    cenarioTeste: "Operação normal com 500 usuários"
+                    dataMetrica: "2025-10-23T14:00:00Z"
+                    aprovado: true
+                  - tipo: "ErrorRate"
+                    nome: "Taxa de Erro (%)"
+                    valorLegado: 2.5
+                    valorNovo: 0.1
+                    unidade: "%"
+                    melhoria: 96.0
+                    cenarioTeste: "100.000 requisições aleatórias"
+                    dataMetrica: "2025-10-23T14:00:00Z"
+                    aprovado: true
+                ultimaAtualizacao: "2025-10-23T14:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/dashboard/activities:
+    get:
+      tags:
+        - dashboard
+      summary: Linha do tempo de atividades recentes
+      description: |
+        Retorna as últimas atividades do projeto de migração em ordem cronológica reversa.
+
+        Inclui:
+        - Tarefas completadas
+        - Mudanças de status
+        - Deployments
+        - Testes executados
+        - Bloqueios identificados
+      operationId: getDashboardActivities
+      parameters:
+        - name: limite
+          in: query
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 50
+            default: 10
+          description: Número máximo de atividades a retornar
+      responses:
+        '200':
+          description: Atividades recuperadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardActivitiesResponse'
+              example:
+                sucesso: true
+                totalAtividades: 10
+                atividades:
+                  - id: "act-120"
+                    tipo: "TaskCompleted"
+                    titulo: "Tela de pesquisa de sinistros concluída"
+                    descricao: "Componente React ClaimSearchPage implementado e testado"
+                    userStory: "US-001"
+                    responsavel: "Maria Silva"
+                    timestamp: "2025-10-23T14:30:00Z"
+                    dataFormatada: "23/10/2025 14:30"
+                  - id: "act-119"
+                    tipo: "TestPassed"
+                    titulo: "Suite de testes de integração passou"
+                    descricao: "15 testes de integração para pesquisa de sinistros - 100% aprovados"
+                    userStory: "US-001"
+                    responsavel: "Sistema Automático"
+                    timestamp: "2025-10-23T13:15:00Z"
+                    dataFormatada: "23/10/2025 13:15"
+                  - id: "act-118"
+                    tipo: "Blocked"
+                    titulo: "Bloqueio identificado: Serviço CNOUA indisponível"
+                    descricao: "Endpoint de homologação do serviço CNOUA retornando 503"
+                    userStory: "US-002"
+                    responsavel: "João Santos"
+                    timestamp: "2025-10-23T10:45:00Z"
+                    dataFormatada: "23/10/2025 10:45"
+                  - id: "act-117"
+                    tipo: "StatusChange"
+                    titulo: "US-001 movida para Completed"
+                    descricao: "User Story 1 - Pesquisar e recuperar sinistro completada"
+                    userStory: "US-001"
+                    responsavel: "Maria Silva"
+                    timestamp: "2025-10-22T16:00:00Z"
+                    dataFormatada: "22/10/2025 16:00"
+                  - id: "act-116"
+                    tipo: "Deployment"
+                    titulo: "Deploy para ambiente de homologação"
+                    descricao: "Versão 1.2.0 implantada em homologação - Backend + Frontend"
+                    userStory: null
+                    responsavel: "DevOps Pipeline"
+                    timestamp: "2025-10-22T09:00:00Z"
+                    dataFormatada: "22/10/2025 09:00"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Autenticação via JWT Bearer Token.
+
+        Para obter um token, utilize o endpoint de autenticação SOAP.
+
+        Exemplo:
+        ```
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        ```
+
+  schemas:
+    ClaimSearchRequest:
+      type: object
+      description: |
+        Requisição de pesquisa de sinistros.
+
+        Um dos três critérios deve ser completamente informado:
+        1. fonte + protsini + dac
+        2. orgsin + rmosin + numsin
+        3. codlider + sinlid
+      properties:
+        fonte:
+          type: integer
+          minimum: 1
+          description: Fonte do protocolo
+          example: 1
+        protsini:
+          type: integer
+          minimum: 1
+          description: Número do protocolo
+          example: 123456
+        dac:
+          type: integer
+          minimum: 0
+          maximum: 9
+          description: Dígito de controle (check digit)
+          example: 7
+        orgsin:
+          type: integer
+          minimum: 1
+          description: Órgão do sinistro
+          example: 10
+        rmosin:
+          type: integer
+          minimum: 1
+          description: Ramo do sinistro
+          example: 20
+        numsin:
+          type: integer
+          minimum: 1
+          description: Número do sinistro
+          example: 789012
+        codlider:
+          type: integer
+          minimum: 1
+          description: Código líder (resseguro)
+          example: 5
+        sinlid:
+          type: integer
+          minimum: 1
+          description: Sinistro líder
+          example: 999888
+      oneOf:
+        - required: [fonte, protsini, dac]
+        - required: [orgsin, rmosin, numsin]
+        - required: [codlider, sinlid]
+
+    ClaimSearchResponse:
+      type: object
+      required:
+        - sucesso
+        - sinistro
+      properties:
+        sucesso:
+          type: boolean
+          description: Indica se a operação foi bem-sucedida
+          example: true
+        sinistro:
+          $ref: '#/components/schemas/ClaimDetail'
+
+    ClaimDetailResponse:
+      type: object
+      required:
+        - sucesso
+        - sinistro
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        sinistro:
+          $ref: '#/components/schemas/ClaimDetail'
+
+    ClaimDetail:
+      type: object
+      required:
+        - tipseg
+        - orgsin
+        - rmosin
+        - numsin
+        - fonte
+        - protsini
+        - dac
+        - numeroProtocolo
+        - numeroSinistro
+        - numeroApolice
+        - sdopag
+        - totpag
+        - valorPendente
+        - ocorhist
+        - tipreg
+        - tpsegu
+        - ehConsorcio
+      properties:
+        tipseg:
+          type: integer
+          description: Tipo de seguro
+          example: 1
+        orgsin:
+          type: integer
+          description: Órgão do sinistro
+          example: 10
+        rmosin:
+          type: integer
+          description: Ramo do sinistro
+          example: 20
+        numsin:
+          type: integer
+          description: Número do sinistro
+          example: 789012
+        fonte:
+          type: integer
+          description: Fonte do protocolo
+          example: 1
+        protsini:
+          type: integer
+          description: Número do protocolo
+          example: 123456
+        dac:
+          type: integer
+          description: Dígito de controle
+          example: 7
+        numeroProtocolo:
+          type: string
+          description: Protocolo formatado (fonte/protsini-dac)
+          example: "001/0123456-7"
+        numeroSinistro:
+          type: string
+          description: Sinistro formatado (orgsin/rmosin/numsin)
+          example: "10/20/789012"
+        orgapo:
+          type: integer
+          description: Órgão da apólice
+          example: 10
+        rmoapo:
+          type: integer
+          description: Ramo da apólice
+          example: 20
+        numapol:
+          type: integer
+          description: Número da apólice
+          example: 555666
+        numeroApolice:
+          type: string
+          description: Apólice formatada (orgapo/rmoapo/numapol)
+          example: "10/20/555666"
+        nomeRamo:
+          type: string
+          description: Nome do ramo de seguros
+          example: "Vida Individual"
+        nomeSeguradora:
+          type: string
+          description: Nome do segurado
+          example: "João da Silva Santos"
+        codprodu:
+          type: integer
+          description: Código do produto
+          example: 1001
+        nomeProduto:
+          type: string
+          description: Nome do produto
+          example: "Vida Total Premium"
+        sdopag:
+          type: number
+          format: decimal
+          description: Saldo esperado (reserva)
+          example: 50000.00
+        totpag:
+          type: number
+          format: decimal
+          description: Total pago até o momento
+          example: 15000.00
+        valorPendente:
+          type: number
+          format: decimal
+          description: Valor pendente (sdopag - totpag)
+          example: 35000.00
+        codlider:
+          type: integer
+          nullable: true
+          description: Código líder (resseguro)
+          example: null
+        sinlid:
+          type: integer
+          nullable: true
+          description: Sinistro líder
+          example: null
+        ocorhist:
+          type: integer
+          description: Contador de ocorrências de histórico
+          example: 3
+        tipreg:
+          type: string
+          description: Tipo de registro/apólice ('1' ou '2')
+          example: "1"
+          pattern: "^[12]$"
+        tpsegu:
+          type: integer
+          description: Tipo de seguro (0 = favorecido opcional, != 0 = obrigatório)
+          example: 1
+        ehConsorcio:
+          type: boolean
+          description: Indica se é produto consórcio (6814, 7701, 7709)
+          example: false
+        criadoPor:
+          type: string
+          description: Usuário que criou o registro
+          example: "operador.sistema"
+        criadoEm:
+          type: string
+          format: date-time
+          description: Data/hora de criação
+          example: "2025-01-15T10:30:00Z"
+        atualizadoPor:
+          type: string
+          description: Usuário que atualizou o registro
+          example: "operador.sistema"
+        atualizadoEm:
+          type: string
+          format: date-time
+          description: Data/hora da última atualização
+          example: "2025-10-20T14:22:00Z"
+
+    PaymentAuthorizationRequest:
+      type: object
+      required:
+        - tipoPagamento
+        - valorPrincipal
+        - tipoApolice
+      properties:
+        tipoPagamento:
+          type: integer
+          description: Tipo de pagamento (1, 2, 3, 4 ou 5)
+          minimum: 1
+          maximum: 5
+          example: 1
+        valorPrincipal:
+          type: number
+          format: decimal
+          description: Valor principal da indenização
+          minimum: 0.01
+          example: 25000.00
+        valorCorrecao:
+          type: number
+          format: decimal
+          description: Valor de correção (opcional)
+          minimum: 0
+          default: 0
+          example: 1250.50
+        favorecido:
+          type: string
+          description: Nome do favorecido/beneficiário (obrigatório se tpsegu != 0)
+          maxLength: 100
+          example: "João da Silva Santos"
+        tipoApolice:
+          type: string
+          description: Tipo de apólice ('1' ou '2')
+          pattern: "^[12]$"
+          example: "1"
+        observacoes:
+          type: string
+          description: Observações adicionais (opcional)
+          maxLength: 500
+          example: "Pagamento de indenização integral"
+
+    PaymentAuthorizationResponse:
+      type: object
+      required:
+        - sucesso
+        - mensagem
+        - autorizacao
+        - dataCriacao
+      properties:
+        sucesso:
+          type: boolean
+          description: Indica se a autorização foi bem-sucedida
+          example: true
+        mensagem:
+          type: string
+          description: Mensagem de confirmação
+          example: "Pagamento autorizado com sucesso"
+        autorizacao:
+          $ref: '#/components/schemas/PaymentAuthorizationDetail'
+        dataCriacao:
+          type: string
+          format: date-time
+          description: Data/hora da criação da autorização
+          example: "2025-10-23T14:30:15Z"
+
+    PaymentAuthorizationDetail:
+      type: object
+      required:
+        - tipseg
+        - orgsin
+        - rmosin
+        - numsin
+        - ocorhist
+        - operacao
+        - dtmovto
+        - horaoper
+        - valpri
+        - crrmon
+        - tipcrr
+        - valpribt
+        - crrmonbt
+        - valtotbt
+        - sitcontb
+        - situacao
+        - ezeusrid
+        - valorPendenteAtualizado
+      properties:
+        tipseg:
+          type: integer
+          example: 1
+        orgsin:
+          type: integer
+          example: 10
+        rmosin:
+          type: integer
+          example: 20
+        numsin:
+          type: integer
+          example: 789012
+        ocorhist:
+          type: integer
+          description: Número de ocorrência desta autorização
+          example: 4
+        operacao:
+          type: integer
+          description: Código de operação (sempre 1098)
+          example: 1098
+        dtmovto:
+          type: string
+          format: date
+          description: Data do movimento
+          example: "2025-10-23"
+        horaoper:
+          type: string
+          format: time
+          description: Hora da operação
+          example: "14:30:15"
+        valpri:
+          type: number
+          format: decimal
+          description: Valor principal (moeda original)
+          example: 25000.00
+        crrmon:
+          type: number
+          format: decimal
+          description: Valor de correção (moeda original)
+          example: 1250.50
+        nomfav:
+          type: string
+          description: Nome do favorecido
+          example: "João da Silva Santos"
+        tipcrr:
+          type: string
+          description: Tipo de correção (sempre '5')
+          example: "5"
+        valpribt:
+          type: number
+          format: decimal
+          description: Valor principal em BTNF
+          example: 27500.00
+        crrmonbt:
+          type: number
+          format: decimal
+          description: Valor de correção em BTNF
+          example: 1375.55
+        valtotbt:
+          type: number
+          format: decimal
+          description: Valor total em BTNF
+          example: 28875.55
+        sitcontb:
+          type: string
+          description: Situação contábil (sempre '0' para novas autorizações)
+          example: "0"
+        situacao:
+          type: string
+          description: Situação geral (sempre '0' para novas autorizações)
+          example: "0"
+        ezeusrid:
+          type: string
+          description: ID do operador
+          example: "operador.sistema"
+        valorPendenteAtualizado:
+          type: number
+          format: decimal
+          description: Valor pendente após esta autorização
+          example: 8124.45
+
+    ClaimHistoryResponse:
+      type: object
+      required:
+        - sucesso
+        - totalRegistros
+        - paginaAtual
+        - tamanhoPagina
+        - totalPaginas
+        - historico
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        totalRegistros:
+          type: integer
+          description: Total de registros de histórico
+          example: 3
+        paginaAtual:
+          type: integer
+          description: Página atual
+          example: 1
+        tamanhoPagina:
+          type: integer
+          description: Tamanho da página
+          example: 20
+        totalPaginas:
+          type: integer
+          description: Total de páginas
+          example: 1
+        historico:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryRecord'
+
+    HistoryRecord:
+      type: object
+      required:
+        - tipseg
+        - orgsin
+        - rmosin
+        - numsin
+        - ocorhist
+        - operacao
+        - dtmovto
+        - horaoper
+        - dataHoraFormatada
+        - valpri
+        - crrmon
+        - tipcrr
+        - valpribt
+        - crrmonbt
+        - valtotbt
+        - sitcontb
+        - situacao
+        - ezeusrid
+      properties:
+        tipseg:
+          type: integer
+          example: 1
+        orgsin:
+          type: integer
+          example: 10
+        rmosin:
+          type: integer
+          example: 20
+        numsin:
+          type: integer
+          example: 789012
+        ocorhist:
+          type: integer
+          example: 4
+        operacao:
+          type: integer
+          example: 1098
+        dtmovto:
+          type: string
+          format: date
+          example: "2025-10-23"
+        horaoper:
+          type: string
+          format: time
+          example: "14:30:15"
+        dataHoraFormatada:
+          type: string
+          description: Data e hora formatadas (dd/MM/yyyy HH:mm:ss)
+          example: "23/10/2025 14:30:15"
+        valpri:
+          type: number
+          format: decimal
+          example: 25000.00
+        crrmon:
+          type: number
+          format: decimal
+          example: 1250.50
+        nomfav:
+          type: string
+          example: "João da Silva Santos"
+        tipcrr:
+          type: string
+          example: "5"
+        valpribt:
+          type: number
+          format: decimal
+          example: 27500.00
+        crrmonbt:
+          type: number
+          format: decimal
+          example: 1375.55
+        valtotbt:
+          type: number
+          format: decimal
+          example: 28875.55
+        sitcontb:
+          type: string
+          example: "0"
+        situacao:
+          type: string
+          example: "0"
+        ezeusrid:
+          type: string
+          example: "operador.sistema"
+
+    ClaimPhasesResponse:
+      type: object
+      required:
+        - sucesso
+        - protocolo
+        - totalFases
+        - fases
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        protocolo:
+          type: string
+          description: Protocolo formatado
+          example: "001/0123456-7"
+        totalFases:
+          type: integer
+          description: Total de fases
+          example: 2
+        fases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhaseRecord'
+
+    PhaseRecord:
+      type: object
+      required:
+        - codFase
+        - nomeFase
+        - codEvento
+        - nomeEvento
+        - numOcorrSiniaco
+        - dataInivigRefaev
+        - dataAberturaSifa
+        - dataFechaSifa
+        - status
+        - diasAberta
+      properties:
+        codFase:
+          type: integer
+          description: Código da fase
+          example: 10
+        nomeFase:
+          type: string
+          description: Nome da fase
+          example: "Análise de Documentação"
+        codEvento:
+          type: integer
+          description: Código do evento
+          example: 100
+        nomeEvento:
+          type: string
+          description: Nome do evento
+          example: "Documentação Recebida"
+        numOcorrSiniaco:
+          type: integer
+          description: Número de ocorrência
+          example: 1
+        dataInivigRefaev:
+          type: string
+          format: date
+          description: Data de início de vigência
+          example: "2025-01-01"
+        dataAberturaSifa:
+          type: string
+          format: date
+          description: Data de abertura da fase
+          example: "2025-08-10"
+        dataFechaSifa:
+          type: string
+          format: date
+          description: Data de fechamento da fase ('9999-12-31' para fases abertas)
+          example: "2025-09-15"
+        status:
+          type: string
+          enum: [Aberta, Fechada]
+          description: Status atual da fase
+          example: "Fechada"
+        diasAberta:
+          type: integer
+          description: Dias em que a fase esteve/está aberta
+          example: 36
+
+    DashboardOverviewResponse:
+      type: object
+      required:
+        - sucesso
+        - progressoGeral
+        - statusUserStories
+        - componentesMigrados
+        - saudeDoSistema
+        - ultimaAtualizacao
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        progressoGeral:
+          $ref: '#/components/schemas/OverallProgress'
+        statusUserStories:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserStoryStatus'
+        componentesMigrados:
+          $ref: '#/components/schemas/ComponentsSummary'
+        saudeDoSistema:
+          $ref: '#/components/schemas/SystemHealth'
+        ultimaAtualizacao:
+          type: string
+          format: date-time
+          example: "2025-10-23T14:30:00Z"
+
+    OverallProgress:
+      type: object
+      required:
+        - percentualCompleto
+        - userStoriesCompletas
+        - userStoriesTotal
+        - requisitosCompletos
+        - requisitosTotal
+        - testesAprovados
+        - testesTotal
+        - coberturaCodigo
+      properties:
+        percentualCompleto:
+          type: number
+          format: decimal
+          description: Percentual geral de conclusão
+          minimum: 0
+          maximum: 100
+          example: 65.5
+        userStoriesCompletas:
+          type: integer
+          example: 4
+        userStoriesTotal:
+          type: integer
+          example: 6
+        requisitosCompletos:
+          type: integer
+          example: 36
+        requisitosTotal:
+          type: integer
+          example: 55
+        testesAprovados:
+          type: integer
+          example: 142
+        testesTotal:
+          type: integer
+          example: 200
+        coberturaCodigo:
+          type: number
+          format: decimal
+          description: Cobertura de código (%)
+          minimum: 0
+          maximum: 100
+          example: 78.5
+
+    UserStoryStatus:
+      type: object
+      required:
+        - codigo
+        - nome
+        - status
+        - percentualCompleto
+        - requisitosCompletos
+        - requisitosTotal
+        - testesAprovados
+        - testesTotal
+        - responsavel
+        - dataInicio
+        - dataEstimada
+      properties:
+        codigo:
+          type: string
+          description: Código da user story
+          example: "US-001"
+        nome:
+          type: string
+          description: Nome da user story
+          example: "Pesquisar e recuperar sinistro"
+        status:
+          type: string
+          enum: [NotStarted, InProgress, Completed, Blocked]
+          example: "Completed"
+        percentualCompleto:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+          example: 100.0
+        requisitosCompletos:
+          type: integer
+          example: 5
+        requisitosTotal:
+          type: integer
+          example: 5
+        testesAprovados:
+          type: integer
+          example: 15
+        testesTotal:
+          type: integer
+          example: 15
+        responsavel:
+          type: string
+          example: "Maria Silva"
+        dataInicio:
+          type: string
+          format: date
+          example: "2025-09-01"
+        dataEstimada:
+          type: string
+          format: date
+          example: "2025-09-15"
+        dataConclusao:
+          type: string
+          format: date
+          nullable: true
+          example: "2025-09-14"
+        bloqueios:
+          type: string
+          nullable: true
+          example: null
+
+    ComponentsSummary:
+      type: object
+      required:
+        - telas
+        - regrasNegocio
+        - integracoesBD
+        - servicosExternos
+      properties:
+        telas:
+          $ref: '#/components/schemas/ComponentTypeStats'
+        regrasNegocio:
+          $ref: '#/components/schemas/ComponentTypeStats'
+        integracoesBD:
+          $ref: '#/components/schemas/ComponentTypeStats'
+        servicosExternos:
+          $ref: '#/components/schemas/ComponentTypeStats'
+
+    ComponentTypeStats:
+      type: object
+      required:
+        - total
+        - completas
+        - emProgresso
+        - percentual
+      properties:
+        total:
+          type: integer
+          example: 42
+        completas:
+          type: integer
+          example: 30
+        emProgresso:
+          type: integer
+          example: 8
+        percentual:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+          example: 71.4
+
+    SystemHealth:
+      type: object
+      required:
+        - apiDisponivel
+        - bancoConectado
+        - cnouaDisponivel
+        - sipuaDisponivel
+        - simdaDisponivel
+        - ultimaVerificacao
+      properties:
+        apiDisponivel:
+          type: boolean
+          example: true
+        bancoConectado:
+          type: boolean
+          example: true
+        cnouaDisponivel:
+          type: boolean
+          example: true
+        sipuaDisponivel:
+          type: boolean
+          example: false
+        simdaDisponivel:
+          type: boolean
+          example: true
+        ultimaVerificacao:
+          type: string
+          format: date-time
+          example: "2025-10-23T14:30:00Z"
+
+    DashboardComponentsResponse:
+      type: object
+      required:
+        - sucesso
+        - totalComponentes
+        - componentes
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        totalComponentes:
+          type: integer
+          example: 57
+        componentes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentDetail'
+
+    ComponentDetail:
+      type: object
+      required:
+        - id
+        - userStoryId
+        - tipo
+        - nome
+        - referenciaLegado
+        - status
+        - horasEstimadas
+        - horasReais
+        - complexidade
+        - responsavel
+        - notasTecnicas
+        - dataInicio
+      properties:
+        id:
+          type: string
+          example: "cmp-001"
+        userStoryId:
+          type: string
+          example: "US-001"
+        tipo:
+          type: string
+          enum: [Screen, BusinessRule, DatabaseEntity, ExternalService]
+          example: "Screen"
+        nome:
+          type: string
+          example: "Tela de Pesquisa de Sinistros"
+        referenciaLegado:
+          type: string
+          description: Referência ao componente legado
+          example: "SIWEG.SIWMAP1"
+        status:
+          type: string
+          enum: [NotStarted, InProgress, Completed, Blocked]
+          example: "Completed"
+        horasEstimadas:
+          type: number
+          format: decimal
+          example: 16.0
+        horasReais:
+          type: number
+          format: decimal
+          example: 14.5
+        complexidade:
+          type: string
+          enum: [Low, Medium, High]
+          example: "Medium"
+        responsavel:
+          type: string
+          example: "Maria Silva"
+        notasTecnicas:
+          type: string
+          example: "Migrado para React com hooks, validação implementada"
+        dataInicio:
+          type: string
+          format: date
+          example: "2025-09-01"
+        dataConclusao:
+          type: string
+          format: date
+          nullable: true
+          example: "2025-09-05"
+
+    DashboardPerformanceResponse:
+      type: object
+      required:
+        - sucesso
+        - periodo
+        - metricas
+        - ultimaAtualizacao
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        periodo:
+          type: string
+          enum: [ultima-hora, ultimo-dia, ultima-semana, ultimo-mes]
+          example: "ultimo-dia"
+        metricas:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceMetric'
+        ultimaAtualizacao:
+          type: string
+          format: date-time
+          example: "2025-10-23T14:00:00Z"
+
+    PerformanceMetric:
+      type: object
+      required:
+        - tipo
+        - nome
+        - valorLegado
+        - valorNovo
+        - unidade
+        - melhoria
+        - cenarioTeste
+        - dataMetrica
+        - aprovado
+      properties:
+        tipo:
+          type: string
+          enum: [ResponseTime, Throughput, ConcurrentUsers, MemoryUsage, ErrorRate]
+          example: "ResponseTime"
+        nome:
+          type: string
+          description: Nome descritivo da métrica
+          example: "Tempo de Resposta Médio (ms)"
+        valorLegado:
+          type: number
+          format: decimal
+          description: Valor medido no sistema legado
+          example: 2800.0
+        valorNovo:
+          type: number
+          format: decimal
+          description: Valor medido no novo sistema
+          example: 450.0
+        unidade:
+          type: string
+          description: Unidade de medida
+          example: "ms"
+        melhoria:
+          type: number
+          format: decimal
+          description: Percentual de melhoria (pode ser negativo se piorou)
+          example: 83.9
+        cenarioTeste:
+          type: string
+          description: Descrição do cenário de teste
+          example: "Pesquisa de sinistro por protocolo"
+        dataMetrica:
+          type: string
+          format: date-time
+          example: "2025-10-23T14:00:00Z"
+        aprovado:
+          type: boolean
+          description: Indica se a métrica atende os critérios de sucesso
+          example: true
+
+    DashboardActivitiesResponse:
+      type: object
+      required:
+        - sucesso
+        - totalAtividades
+        - atividades
+      properties:
+        sucesso:
+          type: boolean
+          example: true
+        totalAtividades:
+          type: integer
+          example: 10
+        atividades:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityRecord'
+
+    ActivityRecord:
+      type: object
+      required:
+        - id
+        - tipo
+        - titulo
+        - descricao
+        - responsavel
+        - timestamp
+        - dataFormatada
+      properties:
+        id:
+          type: string
+          example: "act-120"
+        tipo:
+          type: string
+          enum: [TaskCompleted, TestPassed, StatusChange, Deployment, Blocked]
+          example: "TaskCompleted"
+        titulo:
+          type: string
+          example: "Tela de pesquisa de sinistros concluída"
+        descricao:
+          type: string
+          example: "Componente React ClaimSearchPage implementado e testado"
+        userStory:
+          type: string
+          nullable: true
+          example: "US-001"
+        responsavel:
+          type: string
+          example: "Maria Silva"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-23T14:30:00Z"
+        dataFormatada:
+          type: string
+          description: Data/hora formatadas (dd/MM/yyyy HH:mm)
+          example: "23/10/2025 14:30"
+
+    ErrorResponse:
+      type: object
+      required:
+        - sucesso
+        - codigoErro
+        - mensagem
+        - detalhes
+        - timestamp
+      properties:
+        sucesso:
+          type: boolean
+          description: Sempre false para erros
+          example: false
+        codigoErro:
+          type: string
+          description: Código de erro para identificação programática
+          example: "SINISTRO_NAO_ENCONTRADO"
+        mensagem:
+          type: string
+          description: Mensagem de erro em português
+          example: "DOCUMENTO 001/0123456-7 NAO CADASTRADO"
+        detalhes:
+          type: array
+          items:
+            type: string
+          description: Detalhes adicionais do erro
+          example: []
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp do erro
+          example: "2025-10-23T12:00:00Z"
+        traceId:
+          type: string
+          description: ID de rastreamento para correlação de logs (opcional)
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+  responses:
+    UnauthorizedError:
+      description: Token de autenticação ausente ou inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            sucesso: false
+            codigoErro: "NAO_AUTORIZADO"
+            mensagem: "Token de autenticação inválido ou expirado"
+            detalhes:
+              - "Forneça um token JWT válido no header Authorization"
+            timestamp: "2025-10-23T12:00:00Z"
+
+    InternalServerError:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            sucesso: false
+            codigoErro: "ERRO_INTERNO"
+            mensagem: "Erro inesperado ao processar a requisição"
+            detalhes:
+              - "Entre em contato com o suporte técnico"
+            timestamp: "2025-10-23T12:00:00Z"
+            traceId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"

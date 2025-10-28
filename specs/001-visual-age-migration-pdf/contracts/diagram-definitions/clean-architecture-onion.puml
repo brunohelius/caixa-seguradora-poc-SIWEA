@@ -1,0 +1,19 @@
+@startuml
+!theme plain
+title Clean Architecture - Onion Diagram
+
+circle "Entities" as E #LightBlue
+circle "Use Cases" as UC #LightGreen
+circle "Controllers\nPresenters\nGateways" as CPG #LightYellow
+circle "UI\nDB\nDevices\nWeb" as External #Pink
+
+E -[hidden]-> UC
+UC -[hidden]-> CPG
+CPG -[hidden]-> External
+
+note right of E : Domain Models\nBusiness Rules\nEnterprise Logic
+note right of UC : Application Services\nUse Case Implementations
+note right of CPG : Interface Adapters\nData Transfer Objects
+note right of External : Frameworks & Drivers\nExternal Dependencies
+
+@enduml

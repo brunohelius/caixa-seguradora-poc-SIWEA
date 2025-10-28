@@ -1,0 +1,130 @@
+% Executive Summary Section Template
+% Variables provided by Jinja2 template processor
+
+\section{Contexto do Projeto}
+
+{{ project_context }}
+
+A Caixa Seguradora opera atualmente com o sistema legado SIWEA (Sistema de Autorização de Pagamento de Indenização de Sinistros) desenvolvido em IBM VisualAge EZEE 4.40. Este sistema crítico gerencia todo o processo de autorização de pagamentos de sinistros, desde a pesquisa de protocolos até a liberação final de indenizações.
+
+\section{Motivadores da Migração}
+
+\subsection{Desafios Técnicos}
+\begin{itemize}
+    \item Tecnologia obsoleta: IBM VisualAge EZEE descontinuado desde 2005
+    \item Dificuldade em encontrar profissionais especializados em Visual Age
+    \item Limitações de integração com sistemas modernos
+    \item Alto custo de manutenção da infraestrutura mainframe
+    \item Impossibilidade de implementar práticas DevOps modernas
+\end{itemize}
+
+\subsection{Oportunidades de Negócio}
+\begin{itemize}
+    \item Redução de {{ cost_reduction_percentage }}\% nos custos operacionais
+    \item Melhoria de {{ performance_improvement_percentage }}\% na performance
+    \item Habilitação de trabalho remoto e acesso móvel
+    \item Integração nativa com ecossistema Microsoft Azure
+    \item Implementação de análises em tempo real
+\end{itemize}
+
+\section{Solução Proposta}
+
+\subsection{Stack Tecnológico}
+\begin{table}[H]
+    \centering
+    \tablealternaterows
+    \begin{tabular}{ll}
+        \toprule
+        \tableheaderrow Camada & Tecnologia \\
+        \midrule
+        Backend & .NET 9.0 com ASP.NET Core \\
+        Frontend & React 19 com TypeScript \\
+        Banco de Dados & SQL Server / Azure SQL \\
+        Infraestrutura & Azure App Service \\
+        Containerização & Docker \\
+        CI/CD & Azure DevOps \\
+        \bottomrule
+    \end{tabular}
+    \caption{Stack tecnológico da solução proposta}
+\end{table}
+
+\subsection{Arquitetura}
+A solução adota Clean Architecture com:
+\begin{itemize}
+    \item Separação clara de responsabilidades
+    \item Independência de frameworks
+    \item Testabilidade completa
+    \item Manutenibilidade aprimorada
+\end{itemize}
+
+\section{Cronograma Executivo}
+
+O projeto será executado em {{ total_phases }} fases ao longo de {{ total_weeks }} semanas:
+
+\begin{table}[H]
+    \centering
+    \tablealternaterows
+    \begin{tabular}{llr}
+        \toprule
+        \tableheaderrow Fase & Descrição & Duração \\
+        \midrule
+        {% for phase in timeline_phases %}
+        {{ phase.id }} & {{ phase.title }} & {{ phase.duration }} \\
+        {% endfor %}
+        \bottomrule
+    \end{tabular}
+    \caption{Cronograma executivo do projeto}
+\end{table}
+
+\section{Investimento Total}
+
+\begin{table}[H]
+    \centering
+    \tablealternaterows
+    \begin{tabular}{lr}
+        \toprule
+        \tableheaderrow Categoria & Valor (R\$) \\
+        \midrule
+        Desenvolvimento & \num{{{ development_cost }}} \\
+        Infraestrutura & \num{{{ infrastructure_cost }}} \\
+        Treinamento & \num{{{ training_cost }}} \\
+        Contingência (15\%) & \num{{{ contingency_cost }}} \\
+        \midrule
+        \textbf{Total} & \textbf{\num{{{ total_investment }}}} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Resumo do investimento}
+\end{table}
+
+\section{Benefícios Esperados}
+
+\subsection{Benefícios Quantitativos}
+\begin{itemize}
+    \item ROI de {{ roi_percentage }}\% em {{ roi_period }} meses
+    \item Redução de {{ tco_reduction }}\% no TCO
+    \item Aumento de {{ productivity_increase }}\% na produtividade
+    \item Tempo de resposta < 3 segundos (atualmente 8-12 segundos)
+\end{itemize}
+
+\subsection{Benefícios Qualitativos}
+\begin{itemize}
+    \item Modernização completa da stack tecnológica
+    \item Capacitação da equipe em tecnologias atuais
+    \item Melhoria na experiência do usuário
+    \item Habilitação para transformação digital futura
+    \item Conformidade com padrões modernos de segurança
+\end{itemize}
+
+\section{Próximos Passos}
+
+\begin{enumerate}
+    \item Aprovação do orçamento e cronograma
+    \item Formação da equipe de projeto
+    \item Configuração do ambiente de desenvolvimento
+    \item Início da Fase 0 - Research \& Planning
+    \item Workshops de alinhamento com stakeholders
+\end{enumerate}
+
+\warningbox{
+    \textbf{Ponto de Atenção}: A migração preservará 100\% das regras de negócio existentes, garantindo continuidade operacional sem impacto nos processos estabelecidos.
+}

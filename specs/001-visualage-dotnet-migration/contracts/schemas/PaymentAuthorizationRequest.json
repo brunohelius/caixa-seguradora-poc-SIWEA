@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.caixaseguradora.com.br/schemas/PaymentAuthorizationRequest.json",
+  "title": "Payment Authorization Request",
+  "description": "Requisição de autorização de pagamento de indenização de sinistro",
+  "type": "object",
+  "required": ["tipoPagamento", "valorPrincipal", "tipoApolice"],
+  "properties": {
+    "tipoPagamento": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Tipo de pagamento (1, 2, 3, 4 ou 5)",
+      "examples": [1]
+    },
+    "valorPrincipal": {
+      "type": "number",
+      "multipleOf": 0.01,
+      "minimum": 0.01,
+      "maximum": 999999999999.99,
+      "description": "Valor principal da indenização em moeda corrente",
+      "examples": [25000.00]
+    },
+    "valorCorrecao": {
+      "type": "number",
+      "multipleOf": 0.01,
+      "minimum": 0,
+      "maximum": 999999999999.99,
+      "default": 0,
+      "description": "Valor de correção (opcional)",
+      "examples": [1250.50, 0]
+    },
+    "favorecido": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[A-Za-zÀ-ÿ\\s'-]+$",
+      "description": "Nome do favorecido/beneficiário (obrigatório se tpsegu != 0)",
+      "examples": ["João da Silva Santos"]
+    },
+    "tipoApolice": {
+      "type": "string",
+      "pattern": "^[12]$",
+      "description": "Tipo de apólice ('1' ou '2')",
+      "examples": ["1"]
+    },
+    "observacoes": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Observações adicionais (opcional)",
+      "examples": ["Pagamento de indenização integral"]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "tipoPagamento": 1,
+      "valorPrincipal": 25000.00,
+      "valorCorrecao": 1250.50,
+      "favorecido": "João da Silva Santos",
+      "tipoApolice": "1",
+      "observacoes": "Pagamento de indenização integral"
+    },
+    {
+      "tipoPagamento": 2,
+      "valorPrincipal": 10000.00,
+      "valorCorrecao": 0,
+      "favorecido": "Maria Oliveira Costa",
+      "tipoApolice": "1"
+    },
+    {
+      "tipoPagamento": 3,
+      "valorPrincipal": 5000.00,
+      "tipoApolice": "2"
+    }
+  ]
+}

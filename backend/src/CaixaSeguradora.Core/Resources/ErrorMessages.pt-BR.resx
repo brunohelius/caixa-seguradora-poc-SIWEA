@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- T135 [UI Polish] - Centralized Portuguese Error Messages -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Claim Errors -->
+  <data name="ClaimNotFoundProtocol" xml:space="preserve">
+    <value>DOCUMENTO {0} NAO CADASTRADO</value>
+    <comment>Message when claim is not found by protocol number</comment>
+  </data>
+  <data name="ClaimNotFoundNumber" xml:space="preserve">
+    <value>Sinistro {0}/{1}/{2} não encontrado</value>
+    <comment>Message when claim is not found by claim number</comment>
+  </data>
+  <data name="ClaimNotFoundLeader" xml:space="preserve">
+    <value>Sinistro líder {0}/{1} não encontrado</value>
+    <comment>Message when claim is not found by leader code</comment>
+  </data>
+  <data name="InvalidSearchCriteria" xml:space="preserve">
+    <value>Critérios de busca inválidos. Forneça protocolo, número do sinistro ou código do líder</value>
+    <comment>Message when search criteria are incomplete</comment>
+  </data>
+
+  <!-- Payment Errors -->
+  <data name="PaymentTypeInvalid" xml:space="preserve">
+    <value>Tipo de pagamento deve ser 1, 2, 3, 4 ou 5</value>
+    <comment>Message when payment type is not in valid range</comment>
+  </data>
+  <data name="BeneficiaryRequired" xml:space="preserve">
+    <value>Favorecido é obrigatório para este tipo de seguro</value>
+    <comment>Message when beneficiary is required but not provided</comment>
+  </data>
+  <data name="InsufficientBalance" xml:space="preserve">
+    <value>Valor total excede o saldo pendente do sinistro (R$ {0})</value>
+    <comment>Message when payment amount exceeds pending balance</comment>
+  </data>
+  <data name="ExternalValidationFailed" xml:space="preserve">
+    <value>Validação de produto consórcio falhou: {0}</value>
+    <comment>Message when external validation service (CNOUA/SIPUA/SIMDA) fails</comment>
+  </data>
+  <data name="CurrencyRateNotFound" xml:space="preserve">
+    <value>Taxa de conversão não encontrada para a data {0:dd/MM/yyyy}</value>
+    <comment>Message when currency conversion rate is not available</comment>
+  </data>
+  <data name="ConcurrencyConflict" xml:space="preserve">
+    <value>O sinistro foi modificado por outro usuário. Recarregue e tente novamente</value>
+    <comment>Message when optimistic concurrency conflict occurs</comment>
+  </data>
+
+  <!-- History Errors -->
+  <data name="HistoryNotFound" xml:space="preserve">
+    <value>Nenhum registro de histórico encontrado para este sinistro</value>
+    <comment>Message when no history records exist</comment>
+  </data>
+
+  <!-- Phase Errors -->
+  <data name="PhasesNotFound" xml:space="preserve">
+    <value>Nenhuma fase encontrada para o protocolo {0}</value>
+    <comment>Message when no phases exist for claim</comment>
+  </data>
+  <data name="PhaseUpdateFailed" xml:space="preserve">
+    <value>Falha ao atualizar fases do sinistro</value>
+    <comment>Message when phase update operation fails</comment>
+  </data>
+
+  <!-- Authorization Errors -->
+  <data name="Unauthorized" xml:space="preserve">
+    <value>Você não tem permissão para acessar este recurso</value>
+    <comment>Message when user lacks authorization</comment>
+  </data>
+  <data name="TokenExpired" xml:space="preserve">
+    <value>Sua sessão expirou. Faça login novamente</value>
+    <comment>Message when JWT token has expired</comment>
+  </data>
+
+  <!-- Generic Errors -->
+  <data name="InternalError" xml:space="preserve">
+    <value>Erro interno do servidor. Tente novamente mais tarde</value>
+    <comment>Generic internal error message</comment>
+  </data>
+  <data name="NetworkError" xml:space="preserve">
+    <value>Erro de conexão. Verifique sua internet</value>
+    <comment>Message when network request fails</comment>
+  </data>
+  <data name="TimeoutError" xml:space="preserve">
+    <value>A requisição demorou muito. Tente novamente</value>
+    <comment>Message when request times out</comment>
+  </data>
+
+  <!-- Validation Error Codes (VAL-001 to VAL-008) -->
+  <data name="VAL-001" xml:space="preserve">
+    <value>Protocolo {0}/{1}-{2} NAO ENCONTRADO</value>
+    <comment>BR-006: Protocol not found error</comment>
+  </data>
+  <data name="VAL-002" xml:space="preserve">
+    <value>SINISTRO {0}/{1}/{2} NAO ENCONTRADO</value>
+    <comment>BR-006: Claim not found error</comment>
+  </data>
+  <data name="VAL-003" xml:space="preserve">
+    <value>LIDER {0}-{1} NAO ENCONTRADO</value>
+    <comment>BR-006: Leader not found error</comment>
+  </data>
+  <data name="VAL-004" xml:space="preserve">
+    <value>Tipo de Pagamento deve ser 1, 2, 3, 4, ou 5</value>
+    <comment>BR-011: Invalid payment type</comment>
+  </data>
+  <data name="VAL-005" xml:space="preserve">
+    <value>Valor Superior ao Saldo Pendente</value>
+    <comment>BR-014: Amount exceeds pending balance</comment>
+  </data>
+  <data name="VAL-006" xml:space="preserve">
+    <value>Tipo de Apólice deve ser 1 ou 2</value>
+    <comment>BR-016: Invalid policy type</comment>
+  </data>
+  <data name="VAL-007" xml:space="preserve">
+    <value>Favorecido é obrigatório para este tipo de seguro</value>
+    <comment>BR-020: Missing required beneficiary</comment>
+  </data>
+  <data name="VAL-008" xml:space="preserve">
+    <value>Taxa de conversão não disponível para a data</value>
+    <comment>BR-026: Currency rate not found for date</comment>
+  </data>
+
+  <!-- Consortium Validation Errors (CONS-001 to CONS-005) -->
+  <data name="CONS-001" xml:space="preserve">
+    <value>Contrato de consórcio inválido</value>
+    <comment>BR-052: Consortium validation error</comment>
+  </data>
+  <data name="CONS-002" xml:space="preserve">
+    <value>Contrato cancelado</value>
+    <comment>BR-053: Contract cancelled error</comment>
+  </data>
+  <data name="CONS-003" xml:space="preserve">
+    <value>Grupo encerrado</value>
+    <comment>BR-054: Group closed error</comment>
+  </data>
+  <data name="CONS-004" xml:space="preserve">
+    <value>Cota não contemplada</value>
+    <comment>BR-055: Quota not contemplated error</comment>
+  </data>
+  <data name="CONS-005" xml:space="preserve">
+    <value>Beneficiário não autorizado</value>
+    <comment>BR-056: Beneficiary not authorized error</comment>
+  </data>
+
+  <!-- System Errors (SYS-001 to SYS-005) -->
+  <data name="SYS-001" xml:space="preserve">
+    <value>Erro ao buscar dados do sinistro</value>
+    <comment>System error: Claim data retrieval failed</comment>
+  </data>
+  <data name="SYS-002" xml:space="preserve">
+    <value>Erro ao inserir histórico de pagamento</value>
+    <comment>System error: Payment history insert failed</comment>
+  </data>
+  <data name="SYS-003" xml:space="preserve">
+    <value>Erro ao atualizar saldo do sinistro</value>
+    <comment>System error: Claim balance update failed</comment>
+  </data>
+  <data name="SYS-004" xml:space="preserve">
+    <value>Erro ao processar fases</value>
+    <comment>System error: Phase processing failed</comment>
+  </data>
+  <data name="SYS-005" xml:space="preserve">
+    <value>Serviço de validação indisponível</value>
+    <comment>System error: External validation service unavailable</comment>
+  </data>
+
+  <!-- Business Rule Validation Messages -->
+  <data name="BR-001-Violation" xml:space="preserve">
+    <value>Apenas um modo de busca deve ser fornecido (Protocolo, Sinistro ou Líder)</value>
+    <comment>BR-001: Multiple search modes provided</comment>
+  </data>
+  <data name="BR-002-Violation" xml:space="preserve">
+    <value>Critérios de busca inválidos. Forneça protocolo completo, número do sinistro completo ou código do líder completo</value>
+    <comment>BR-002: Incomplete search criteria</comment>
+  </data>
+  <data name="BR-013-Violation" xml:space="preserve">
+    <value>Valor total (R$ {0:N2}) excede o saldo pendente (R$ {1:N2})</value>
+    <comment>BR-013: Payment amount exceeds pending balance</comment>
+  </data>
+  <data name="BR-019-Violation" xml:space="preserve">
+    <value>Favorecido é obrigatório para este tipo de seguro (TIPSEG != 0)</value>
+    <comment>BR-019: Beneficiary required for non-zero insurance type</comment>
+  </data>
+  <data name="BR-033-Violation" xml:space="preserve">
+    <value>Código da moeda deve ser sempre BTNF</value>
+    <comment>BR-033: Currency code must be BTNF</comment>
+  </data>
+  <data name="BR-034-Violation" xml:space="preserve">
+    <value>Código de operação deve ser sempre 1098</value>
+    <comment>BR-034: Operation code must be 1098</comment>
+  </data>
+  <data name="BR-039-Violation" xml:space="preserve">
+    <value>Tipo de correção deve ser sempre '5'</value>
+    <comment>BR-039: Correction type must be '5'</comment>
+  </data>
+  <data name="BR-040-Violation" xml:space="preserve">
+    <value>Contador de ocorrências (OCORHIST) deve ser incrementado em 1</value>
+    <comment>BR-040: Occurrence counter must be incremented</comment>
+  </data>
+  <data name="BR-061-Violation" xml:space="preserve">
+    <value>Data de fechamento para abertura de fase deve ser '9999-12-31'</value>
+    <comment>BR-061: Open phase must have closing date 9999-12-31</comment>
+  </data>
+  <data name="BR-063-Violation" xml:space="preserve">
+    <value>Não é permitido criar fases duplicadas em aberto</value>
+    <comment>BR-063: Duplicate open phases not allowed</comment>
+  </data>
+  <data name="BR-067-Violation" xml:space="preserve">
+    <value>Todas as atualizações de fase devem ser processadas atomicamente</value>
+    <comment>BR-067: Phase atomicity violation</comment>
+  </data>
+  <data name="BR-073-Violation" xml:space="preserve">
+    <value>Data da transação é imutável após criação</value>
+    <comment>BR-073: Transaction date is immutable</comment>
+  </data>
+  <data name="BR-096-Violation" xml:space="preserve">
+    <value>Busca de sinistro excedeu o limite de 3 segundos</value>
+    <comment>BR-096: Search performance target missed</comment>
+  </data>
+  <data name="BR-097-Violation" xml:space="preserve">
+    <value>Autorização de pagamento excedeu o limite de 90 segundos</value>
+    <comment>BR-097: Authorization performance target missed</comment>
+  </data>
+  <data name="BR-098-Violation" xml:space="preserve">
+    <value>Consulta de histórico excedeu o limite de 500ms para 1000+ registros</value>
+    <comment>BR-098: History query performance target missed</comment>
+  </data>
+</root>

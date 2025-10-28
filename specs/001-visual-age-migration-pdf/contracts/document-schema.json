@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Visual Age Migration PDF Document Schema",
+  "description": "JSON schema defining structure and requirements for comprehensive migration analysis PDF",
+  "version": "1.0",
+  "type": "object",
+  "required": ["metadata", "sections", "diagrams", "formatting", "quality_checks"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["title", "author", "creation_date", "version"],
+      "properties": {
+        "title": {"type": "string", "const": "Visual Age to .NET Migration - Comprehensive Analysis & Plan"},
+        "author": {"type": "string", "const": "Caixa Seguradora Migration Team"},
+        "creation_date": {"type": "string", "format": "date"},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+$"},
+        "keywords": {"type": "array", "items": {"type": "string"}, "minItems": 5}
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "min_pages", "required_subsections"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "min_pages": {"type": "integer", "minimum": 2},
+          "max_pages": {"type": "integer"},
+          "required_subsections": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+        }
+      }
+    },
+    "diagrams": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "format"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["layered-architecture", "onion-diagram", "entity-relationship", "tree-diagram", "uml-sequence", "gantt-chart", "deployment-diagram"]},
+          "format": {"type": "string", "enum": ["vector-pdf-or-svg"]},
+          "min_width_mm": {"type": "integer", "minimum": 100},
+          "min_height_mm": {"type": "integer", "minimum": 100}
+        }
+      }
+    },
+    "formatting": {
+      "type": "object",
+      "required": ["page_size", "margins", "header", "footer", "typography", "colors"],
+      "properties": {
+        "page_size": {"type": "string", "const": "A4"},
+        "margins": {
+          "type": "object",
+          "properties": {
+            "top_mm": {"type": "integer", "minimum": 20},
+            "bottom_mm": {"type": "integer", "minimum": 20},
+            "left_mm": {"type": "integer", "minimum": 15},
+            "right_mm": {"type": "integer", "minimum": 15}
+          }
+        },
+        "typography": {
+          "type": "object",
+          "properties": {
+            "heading1": {"$ref": "#/definitions/typographyStyle"},
+            "heading2": {"$ref": "#/definitions/typographyStyle"},
+            "body": {"$ref": "#/definitions/typographyStyle"}
+          }
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "technical": {"type": "string", "pattern": "^#[0-9A-F]{6}$"},
+            "success": {"type": "string", "pattern": "^#[0-9A-F]{6}$"},
+            "error": {"type": "string", "pattern": "^#[0-9A-F]{6}$"}
+          }
+        }
+      }
+    },
+    "quality_checks": {
+      "type": "object",
+      "required": ["min_pages", "pdf_format", "embedded_fonts", "searchable_text"],
+      "properties": {
+        "min_pages": {"type": "integer", "const": 50},
+        "max_pages": {"type": "integer", "const": 70},
+        "pdf_format": {"type": "string", "const": "PDF/A-1b"},
+        "embedded_fonts": {"type": "boolean", "const": true},
+        "searchable_text": {"type": "boolean", "const": true},
+        "hyperlinked_toc": {"type": "boolean", "const": true},
+        "min_contrast_ratio": {"type": "number", "const": 4.5}
+      }
+    }
+  },
+  "definitions": {
+    "typographyStyle": {
+      "type": "object",
+      "properties": {
+        "font": {"type": "string"},
+        "size_pt": {"type": "integer", "minimum": 9, "maximum": 20},
+        "weight": {"type": "string", "enum": ["regular", "bold"]},
+        "color": {"type": "string", "pattern": "^#[0-9A-F]{6}$"}
+      }
+    }
+  }
+}

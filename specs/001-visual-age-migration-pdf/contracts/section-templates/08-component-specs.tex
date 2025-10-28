@@ -1,0 +1,12 @@
+% Component Specifications Section
+\section{Componentes Backend}
+{% for component in component_specifications.backend[:5] %}
+\subsection{{{ component.name }}}
+{{ component.description }}
+{% endfor %}
+
+\section{Componentes Frontend}
+{% for component in component_specifications.frontend[:5] %}
+\subsection{{{ component.name }}}
+{{ component.description }}
+{% endfor %}

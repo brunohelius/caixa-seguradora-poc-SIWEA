@@ -1,0 +1,155 @@
+% Diagrams Style Package for Visual Age Migration Document
+% Defines diagram and figure formatting
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{diagrams}[2025/10/23 Diagram formatting styles]
+
+% Required packages
+\RequirePackage{graphicx}
+\RequirePackage{float}
+\RequirePackage{caption}
+\RequirePackage{subcaption}
+
+% Figure placement preference
+% h = here, t = top, b = bottom, p = separate page
+\setlength{\floatsep}{12pt}
+\setlength{\textfloatsep}{12pt}
+\setlength{\intextsep}{12pt}
+
+% Default figure width
+\newlength{\defaultfigwidth}
+\setlength{\defaultfigwidth}{0.8\textwidth}
+
+% Caption formatting
+\captionsetup[figure]{
+    labelfont={bf,color=caixablue},
+    textfont={it},
+    format=plain,
+    justification=centering,
+    singlelinecheck=false,
+    skip=6pt
+}
+
+\captionsetup[subfigure]{
+    labelfont={bf,small},
+    textfont={small},
+    format=plain,
+    justification=centering,
+    singlelinecheck=false,
+    skip=3pt
+}
+
+% Custom commands for different diagram types
+
+% Architecture diagram
+\newcommand{\architecturediagram}[3][]{%
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=#1\defaultfigwidth]{#2}
+        \caption{#3}
+        \label{fig:#2}
+    \end{figure}
+}
+
+% UML diagram
+\newcommand{\umldiagram}[3][]{%
+    \begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=#1\defaultfigwidth]{#2}}
+        \caption{#3}
+        \label{fig:#2}
+    \end{figure}
+}
+
+% Gantt chart
+\newcommand{\ganttdiagram}[3][]{%
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=#1\textwidth]{#2}
+        \caption{#3}
+        \label{fig:#2}
+    \end{figure}
+}
+
+% Flow diagram
+\newcommand{\flowdiagram}[3][]{%
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=#1\defaultfigwidth]{#2}
+        \caption{#3}
+        \label{fig:#2}
+    \end{figure}
+}
+
+% Side-by-side diagrams
+\newcommand{\sidediagrams}[6]{%
+    \begin{figure}[H]
+        \centering
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{#1}
+            \caption{#2}
+            \label{fig:#1}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{#3}
+            \caption{#4}
+            \label{fig:#3}
+        \end{subfigure}
+        \caption{#5}
+        \label{fig:#6}
+    \end{figure}
+}
+
+% Full page diagram
+\newcommand{\fullpagediagram}[3]{%
+    \begin{figure}[p]
+        \centering
+        \includegraphics[width=\textwidth,height=0.9\textheight,keepaspectratio]{#1}
+        \caption{#2}
+        \label{fig:#3}
+    \end{figure}
+}
+
+% Inline small diagram
+\newcommand{\inlinediagram}[2][0.3]{%
+    \includegraphics[width=#1\textwidth]{#2}
+}
+
+% Diagram with border
+\newcommand{\bordereddiagram}[3][]{%
+    \begin{figure}[H]
+        \centering
+        \fbox{\includegraphics[width=#1\defaultfigwidth]{#2}}
+        \caption{#3}
+        \label{fig:#2}
+    \end{figure}
+}
+
+% Diagram sizing helpers
+\newcommand{\smalldiagram}[2]{%
+    \architecturediagram[0.5]{#1}{#2}
+}
+
+\newcommand{\mediumdiagram}[2]{%
+    \architecturediagram[0.7]{#1}{#2}
+}
+
+\newcommand{\largediagram}[2]{%
+    \architecturediagram[0.9]{#1}{#2}
+}
+
+% Minimum diagram dimensions (100mm width/height)
+\newcommand{\ensureminsize}[1]{%
+    \ifdim\width<100mm
+        \resizebox{100mm}{!}{#1}
+    \else\ifdim\height<100mm
+        \resizebox{!}{100mm}{#1}
+    \else
+        #1
+    \fi\fi
+}
+
+\endinput

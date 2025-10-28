@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+    name="AutenticacaoService"
+    targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1"
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:tns="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <documentation>
+        Serviço SOAP de Autenticação - SIWEA
+
+        Versão: 1.0
+        Data: 2025-10-27
+        Projeto: Migração Visual Age para .NET 9.0
+
+        Operações:
+        - autenticar: Autentica usuário e retorna sessionId
+        - renovarSessao: Renova sessão expirada
+        - logout: Encerra sessão ativa
+
+        Endpoint:
+        - Produção: https://api.caixaseguradora.com.br/siwea/v1/soap/autenticacao
+        - Homologação: https://api-hom.caixaseguradora.com.br/siwea/v1/soap/autenticacao
+        - Desenvolvimento: https://localhost:5001/soap/autenticacao
+    </documentation>
+
+    <!-- ==================== TYPES ==================== -->
+
+    <types>
+        <xsd:schema targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1">
+
+            <!-- Request: Autenticar -->
+            <xsd:element name="autenticarRequest">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Requisição de autenticação.
+
+                        Campos obrigatórios:
+                        - codUsuario: Login do usuário (máx 50 caracteres)
+                        - desSenha: Senha do usuário (máx 255 caracteres)
+                        - codSistema: Código do sistema cliente (ex: "S1", "WEB")
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codUsuario" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Login do usuário</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="desSenha" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Senha (será transmitida via HTTPS)</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="codSistema" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Código do sistema (ex: "S1", "WEB")</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Response: Autenticar -->
+            <xsd:element name="autenticarResponse">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Resposta de autenticação bem-sucedida.
+
+                        Retorna sessionId que deve ser usado em chamadas subsequentes.
+                        Token tem validade de 8 horas.
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sessionId" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Token de sessão (JWT)</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="nomeUsuario" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Nome completo do usuário</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="perfil" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Perfil do usuário (ex: "OPERADOR", "AUTORIZADOR")</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="dataExpiracao" type="xsd:dateTime">
+                            <xsd:annotation>
+                                <xsd:documentation>Data/hora de expiração do token</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Request: Renovar Sessão -->
+            <xsd:element name="renovarSessaoRequest">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Requisição para renovar sessão expirada.
+
+                        Permite renovar token sem re-autenticar (se dentro de 24h da expiração).
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Token de sessão expirado</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="refreshToken" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Refresh token recebido na autenticação original</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Response: Renovar Sessão -->
+            <xsd:element name="renovarSessaoResponse">
+                <xsd:annotation>
+                    <xsd:documentation>Resposta com novo sessionId</xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sessionId" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Novo token de sessão</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="dataExpiracao" type="xsd:dateTime">
+                            <xsd:annotation>
+                                <xsd:documentation>Nova data de expiração</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Request: Logout -->
+            <xsd:element name="logoutRequest">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Requisição para encerrar sessão ativa.
+
+                        Invalida o sessionId imediatamente.
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+                            <xsd:annotation>
+                                <xsd:documentation>Token de sessão a ser invalidado</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Response: Logout -->
+            <xsd:element name="logoutResponse">
+                <xsd:annotation>
+                    <xsd:documentation>Confirmação de logout</xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="sucesso" type="xsd:boolean">
+                            <xsd:annotation>
+                                <xsd:documentation>Indica se logout foi bem-sucedido</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="mensagem" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Mensagem de confirmação</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Fault: Erro de Autenticação -->
+            <xsd:element name="autenticacaoFault">
+                <xsd:annotation>
+                    <xsd:documentation>
+                        Erro de autenticação.
+
+                        Códigos de erro:
+                        - AUTH001: Credenciais inválidas
+                        - AUTH002: Usuário bloqueado
+                        - AUTH003: Sessão expirada
+                        - AUTH004: Sessão inválida
+                        - AUTH005: Sistema inválido
+                    </xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codigoErro" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Código do erro (ex: AUTH001)</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="mensagem" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation>Mensagem de erro em português</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="detalhes" type="xsd:string" minOccurs="0">
+                            <xsd:annotation>
+                                <xsd:documentation>Detalhes adicionais do erro</xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+        </xsd:schema>
+    </types>
+
+    <!-- ==================== MESSAGES ==================== -->
+
+    <!-- Autenticar -->
+    <message name="autenticarRequestMsg">
+        <part name="parameters" element="tns:autenticarRequest"/>
+    </message>
+    <message name="autenticarResponseMsg">
+        <part name="parameters" element="tns:autenticarResponse"/>
+    </message>
+
+    <!-- Renovar Sessão -->
+    <message name="renovarSessaoRequestMsg">
+        <part name="parameters" element="tns:renovarSessaoRequest"/>
+    </message>
+    <message name="renovarSessaoResponseMsg">
+        <part name="parameters" element="tns:renovarSessaoResponse"/>
+    </message>
+
+    <!-- Logout -->
+    <message name="logoutRequestMsg">
+        <part name="parameters" element="tns:logoutRequest"/>
+    </message>
+    <message name="logoutResponseMsg">
+        <part name="parameters" element="tns:logoutResponse"/>
+    </message>
+
+    <!-- Fault -->
+    <message name="autenticacaoFaultMsg">
+        <part name="fault" element="tns:autenticacaoFault"/>
+    </message>
+
+    <!-- ==================== PORT TYPE ==================== -->
+
+    <portType name="AutenticacaoPortType">
+        <documentation>
+            Port type para operações de autenticação.
+        </documentation>
+
+        <operation name="autenticar">
+            <documentation>
+                Autentica usuário e retorna sessionId.
+
+                Exemplo de uso:
+                Input: codUsuario="operador123", desSenha="senha123", codSistema="S1"
+                Output: sessionId="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            </documentation>
+            <input message="tns:autenticarRequestMsg"/>
+            <output message="tns:autenticarResponseMsg"/>
+            <fault name="autenticacaoFault" message="tns:autenticacaoFaultMsg"/>
+        </operation>
+
+        <operation name="renovarSessao">
+            <documentation>
+                Renova sessão expirada usando refresh token.
+
+                Disponível apenas dentro de 24 horas após expiração original.
+            </documentation>
+            <input message="tns:renovarSessaoRequestMsg"/>
+            <output message="tns:renovarSessaoResponseMsg"/>
+            <fault name="autenticacaoFault" message="tns:autenticacaoFaultMsg"/>
+        </operation>
+
+        <operation name="logout">
+            <documentation>
+                Encerra sessão ativa, invalidando sessionId.
+
+                Recomendado executar ao final de cada sessão do usuário.
+            </documentation>
+            <input message="tns:logoutRequestMsg"/>
+            <output message="tns:logoutResponseMsg"/>
+            <fault name="autenticacaoFault" message="tns:autenticacaoFaultMsg"/>
+        </operation>
+    </portType>
+
+    <!-- ==================== BINDING ==================== -->
+
+    <binding name="AutenticacaoSoapBinding" type="tns:AutenticacaoPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+        <operation name="autenticar">
+            <soap:operation soapAction="autenticar" style="document"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="autenticacaoFault">
+                <soap:fault name="autenticacaoFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="renovarSessao">
+            <soap:operation soapAction="renovarSessao" style="document"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="autenticacaoFault">
+                <soap:fault name="autenticacaoFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="logout">
+            <soap:operation soapAction="logout" style="document"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="autenticacaoFault">
+                <soap:fault name="autenticacaoFault" use="literal"/>
+            </fault>
+        </operation>
+    </binding>
+
+    <!-- ==================== SERVICE ==================== -->
+
+    <service name="AutenticacaoService">
+        <documentation>
+            Serviço de Autenticação SIWEA
+
+            Versão: 1.0
+            Namespace: http://ls.caixaseguradora.com.br/LS1134WSV0001_Autenticacao/v1
+        </documentation>
+
+        <port name="AutenticacaoPort" binding="tns:AutenticacaoSoapBinding">
+            <soap:address location="https://api.caixaseguradora.com.br/siwea/v1/soap/autenticacao"/>
+        </port>
+    </service>
+
+</definitions>

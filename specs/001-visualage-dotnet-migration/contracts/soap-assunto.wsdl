@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:tns="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1"
+             targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1"
+             name="AssuntoService">
+
+  <documentation>
+    Serviço de Assunto - Sistema de Autorização de Pagamento de Indenizações
+
+    Namespace: http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1
+    Versão: 1.0
+
+    Descrição:
+    Serviço SOAP para gestão de assuntos/tópicos relacionados a sinistros.
+    Compatível com o serviço legado IBM Visual Age EZEE.
+
+    Operações:
+    - listarAssuntos: Lista assuntos disponíveis
+    - consultarAssunto: Consulta detalhes de um assunto específico
+    - associarAssuntoSinistro: Associa um assunto a um sinistro
+  </documentation>
+
+  <types>
+    <xsd:schema targetNamespace="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1"
+                elementFormDefault="qualified">
+
+      <!-- Requisição de Listagem de Assuntos -->
+      <xsd:element name="listarAssuntosRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Token de sessão do operador</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="categoria" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Filtro por categoria (opcional)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ativo" type="xsd:boolean" minOccurs="0" default="true">
+              <xsd:annotation>
+                <xsd:documentation>Filtrar apenas assuntos ativos (padrão: true)</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Listagem de Assuntos -->
+      <xsd:element name="listarAssuntosResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1"/>
+            <xsd:element name="totalAssuntos" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="assuntos" type="tns:ArrayOfAssunto" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Lista de assuntos</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Consulta de Assunto -->
+      <xsd:element name="consultarAssuntoRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1"/>
+            <xsd:element name="codigoAssunto" type="xsd:int" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Código único do assunto</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Consulta de Assunto -->
+      <xsd:element name="consultarAssuntoResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1"/>
+            <xsd:element name="assunto" type="tns:DetalheAssunto" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Detalhes do assunto</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Requisição de Associação de Assunto a Sinistro -->
+      <xsd:element name="associarAssuntoSinistroRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sessionId" type="xsd:string" minOccurs="1"/>
+            <xsd:element name="sinistro" type="tns:IdentificadorSinistro" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Identificação do sinistro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="codigoAssunto" type="xsd:int" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Código do assunto a associar</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="observacao" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Observações sobre a associação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Resposta de Associação de Assunto a Sinistro -->
+      <xsd:element name="associarAssuntoSinistroResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sucesso" type="xsd:boolean" minOccurs="1"/>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de confirmação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="dataAssociacao" type="xsd:dateTime" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Data/hora da associação</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagemErro" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Tipos Complexos -->
+
+      <!-- Identificador de Sinistro -->
+      <xsd:complexType name="IdentificadorSinistro">
+        <xsd:sequence>
+          <xsd:element name="tipseg" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Tipo de seguro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="orgsin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Órgão do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="rmosin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Ramo do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="numsin" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Número do sinistro</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Assunto (resumido) -->
+      <xsd:complexType name="Assunto">
+        <xsd:sequence>
+          <xsd:element name="codigo" type="xsd:int" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Código único do assunto</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="descricao" type="xsd:string" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Descrição do assunto</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="categoria" type="xsd:string" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Categoria do assunto</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="ativo" type="xsd:boolean" minOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Indica se o assunto está ativo</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Detalhe do Assunto -->
+      <xsd:complexType name="DetalheAssunto">
+        <xsd:sequence>
+          <xsd:element name="codigo" type="xsd:int" minOccurs="1"/>
+          <xsd:element name="descricao" type="xsd:string" minOccurs="1"/>
+          <xsd:element name="descricaoCompleta" type="xsd:string" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Descrição detalhada do assunto</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="categoria" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="ativo" type="xsd:boolean" minOccurs="1"/>
+          <xsd:element name="prazoResolucao" type="xsd:int" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Prazo de resolução em dias</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="dataInclusao" type="xsd:date" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Data de inclusão do assunto</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="dataAlteracao" type="xsd:date" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Data da última alteração</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Array de Assuntos -->
+      <xsd:complexType name="ArrayOfAssunto">
+        <xsd:sequence>
+          <xsd:element name="assunto" type="tns:Assunto" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Erro de Assunto (SOAP Fault) -->
+      <xsd:element name="AssuntoFault">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="codigoErro" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Código do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="mensagem" type="xsd:string" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Mensagem de erro em português</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="detalhes" type="xsd:string" minOccurs="0">
+              <xsd:annotation>
+                <xsd:documentation>Detalhes adicionais do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="timestamp" type="xsd:dateTime" minOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>Data e hora do erro</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- Mensagens -->
+  <message name="listarAssuntosRequestMsg">
+    <part name="parameters" element="tns:listarAssuntosRequest"/>
+  </message>
+
+  <message name="listarAssuntosResponseMsg">
+    <part name="parameters" element="tns:listarAssuntosResponse"/>
+  </message>
+
+  <message name="consultarAssuntoRequestMsg">
+    <part name="parameters" element="tns:consultarAssuntoRequest"/>
+  </message>
+
+  <message name="consultarAssuntoResponseMsg">
+    <part name="parameters" element="tns:consultarAssuntoResponse"/>
+  </message>
+
+  <message name="associarAssuntoSinistroRequestMsg">
+    <part name="parameters" element="tns:associarAssuntoSinistroRequest"/>
+  </message>
+
+  <message name="associarAssuntoSinistroResponseMsg">
+    <part name="parameters" element="tns:associarAssuntoSinistroResponse"/>
+  </message>
+
+  <message name="AssuntoFaultMsg">
+    <part name="fault" element="tns:AssuntoFault"/>
+  </message>
+
+  <!-- Port Type -->
+  <portType name="AssuntoPortType">
+    <documentation>Interface do serviço de assuntos</documentation>
+
+    <operation name="listarAssuntos">
+      <documentation>
+        Lista todos os assuntos disponíveis, com filtros opcionais por categoria e status ativo.
+      </documentation>
+      <input message="tns:listarAssuntosRequestMsg"/>
+      <output message="tns:listarAssuntosResponseMsg"/>
+      <fault name="AssuntoFault" message="tns:AssuntoFaultMsg"/>
+    </operation>
+
+    <operation name="consultarAssunto">
+      <documentation>
+        Consulta detalhes completos de um assunto específico pelo seu código.
+      </documentation>
+      <input message="tns:consultarAssuntoRequestMsg"/>
+      <output message="tns:consultarAssuntoResponseMsg"/>
+      <fault name="AssuntoFault" message="tns:AssuntoFaultMsg"/>
+    </operation>
+
+    <operation name="associarAssuntoSinistro">
+      <documentation>
+        Associa um assunto a um sinistro, permitindo categorização e rastreamento de questões.
+      </documentation>
+      <input message="tns:associarAssuntoSinistroRequestMsg"/>
+      <output message="tns:associarAssuntoSinistroResponseMsg"/>
+      <fault name="AssuntoFault" message="tns:AssuntoFaultMsg"/>
+    </operation>
+  </portType>
+
+  <!-- Binding SOAP 1.2 -->
+  <binding name="AssuntoSOAP12Binding" type="tns:AssuntoPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="listarAssuntos">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/listarAssuntos" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap12:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="consultarAssunto">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/consultarAssunto" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap12:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="associarAssuntoSinistro">
+      <soap12:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/associarAssuntoSinistro" style="document"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap12:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Binding SOAP 1.1 -->
+  <binding name="AssuntoSOAPBinding" type="tns:AssuntoPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <operation name="listarAssuntos">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/listarAssuntos" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="consultarAssunto">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/consultarAssunto" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+
+    <operation name="associarAssuntoSinistro">
+      <soap:operation soapAction="http://ls.caixaseguradora.com.br/LS1134WSV0006_Assunto/v1/associarAssuntoSinistro" style="document"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="AssuntoFault">
+        <soap:fault name="AssuntoFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+
+  <!-- Service -->
+  <service name="AssuntoService">
+    <documentation>
+      Serviço de Assunto - Sistema SIWEA
+      Caixa Seguradora
+    </documentation>
+
+    <port name="AssuntoSOAP12Port" binding="tns:AssuntoSOAP12Binding">
+      <soap12:address location="https://api.caixaseguradora.com.br/soap/assunto"/>
+    </port>
+
+    <port name="AssuntoSOAPPort" binding="tns:AssuntoSOAPBinding">
+      <soap:address location="https://api.caixaseguradora.com.br/soap/assunto"/>
+    </port>
+  </service>
+
+</definitions>

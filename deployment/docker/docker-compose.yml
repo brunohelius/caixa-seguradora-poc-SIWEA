@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: caixaseguradora-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - caixaseguradora-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT 1" -C
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../deployment/docker/Dockerfile.backend
+    container_name: caixaseguradora-backend
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:5001;http://+:5000
+      - ConnectionStrings__ClaimsDatabase=Server=sqlserver,1433;Database=ClaimsSystem;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - caixaseguradora-network
+    volumes:
+      - ./logs:/app/logs
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../deployment/docker/Dockerfile.frontend
+    container_name: caixaseguradora-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=https://backend:5001
+      - VITE_DASHBOARD_REFRESH_INTERVAL=30000
+    depends_on:
+      - backend
+    networks:
+      - caixaseguradora-network
+
+networks:
+  caixaseguradora-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+    driver: local
