@@ -16,8 +16,8 @@ COPY frontend/ ./
 # Build the application
 RUN npm run build
 
-# Expose port (Railway will override with $PORT)
-EXPOSE 5174
+# Expose port
+EXPOSE ${PORT:-5174}
 
-# Start the preview server
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5174"]
+# Start the preview server with PORT variable
+CMD sh -c "npm run preview -- --host 0.0.0.0 --port ${PORT:-5174}"
